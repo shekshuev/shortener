@@ -22,7 +22,7 @@ func (us *URLShortener) handler(w http.ResponseWriter, r *http.Request) {
 		shorted := utils.Shorten(string(body))
 		us.urls[shorted] = string(body)
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(fmt.Sprintf("%s/%s", r.Host, shorted)))
+		w.Write([]byte(fmt.Sprintf("http://%s/%s", r.Host, shorted)))
 	} else if r.Method == http.MethodGet {
 		shorted := r.URL.Path[1:]
 		if url, ok := us.urls[shorted]; ok {
