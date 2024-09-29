@@ -28,10 +28,10 @@ func (us *URLShortener) handler(w http.ResponseWriter, r *http.Request) {
 		if url, ok := us.urls[shorted]; ok {
 			http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 		} else {
-			http.NotFound(w, r)
+			w.WriteHeader(http.StatusBadRequest)
 		}
 	} else {
-		http.NotFound(w, r)
+		w.WriteHeader(http.StatusBadRequest)
 	}
 }
 
