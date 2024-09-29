@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/shekshuev/alice-skill/internal/utils"
+	"github.com/shekshuev/shortener/internal/utils"
 	"io"
 	"net/http"
 )
