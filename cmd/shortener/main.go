@@ -7,11 +7,9 @@ import (
 	"net/http"
 )
 
-type URLShortener struct {
-	urls map[string]string
-}
+var urls = make(map[string]string)
 
-func (us *URLShortener) handler(w http.ResponseWriter, r *http.Request) {
+func create(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -20,12 +18,18 @@ func (us *URLShortener) handler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "text/plain")
 		shorted := utils.Shorten(string(body))
-		us.urls[shorted] = string(body)
+		urls[shorted] = string(body)
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(fmt.Sprintf("http://%s/%s", r.Host, shorted)))
-	} else if r.Method == http.MethodGet {
-		shorted := r.URL.Path[1:]
-		if url, ok := us.urls[shorted]; ok {
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+}
+
+func get(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		shorted := r.PathValue("shorted")
+		if url, ok := urls[shorted]; ok {
 			http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
@@ -33,15 +37,13 @@ func (us *URLShortener) handler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
 	}
+
 }
 
 func main() {
 	mux := http.NewServeMux()
-	us := &URLShortener{
-		urls: make(map[string]string),
-	}
-
-	mux.HandleFunc("/", us.handler)
+	mux.HandleFunc("/", create)
+	mux.HandleFunc("/{shorted}", get)
 	err := http.ListenAndServe(":8080", mux)
 	if err != nil {
 		panic(err)
