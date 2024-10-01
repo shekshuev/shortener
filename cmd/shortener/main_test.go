@@ -42,18 +42,18 @@ func Test_get(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(url))
 	w := httptest.NewRecorder()
 	create(w, r)
-	shortedId := "/" + strings.Split(w.Body.String(), "/")[3]
+	shortedID := "/" + strings.Split(w.Body.String(), "/")[3]
 	testCases := []struct {
 		method       string
 		target       string
 		expectedCode int
 	}{
-		{method: http.MethodGet, target: shortedId, expectedCode: http.StatusTemporaryRedirect},
+		{method: http.MethodGet, target: shortedID, expectedCode: http.StatusTemporaryRedirect},
 		{method: http.MethodGet, target: "/unknown", expectedCode: http.StatusBadRequest},
-		{method: http.MethodPut, target: shortedId, expectedCode: http.StatusBadRequest},
-		{method: http.MethodPost, target: shortedId, expectedCode: http.StatusBadRequest},
-		{method: http.MethodDelete, target: shortedId, expectedCode: http.StatusBadRequest},
-		{method: http.MethodPatch, target: shortedId, expectedCode: http.StatusBadRequest},
+		{method: http.MethodPut, target: shortedID, expectedCode: http.StatusBadRequest},
+		{method: http.MethodPost, target: shortedID, expectedCode: http.StatusBadRequest},
+		{method: http.MethodDelete, target: shortedID, expectedCode: http.StatusBadRequest},
+		{method: http.MethodPatch, target: shortedID, expectedCode: http.StatusBadRequest},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.method, func(t *testing.T) {
