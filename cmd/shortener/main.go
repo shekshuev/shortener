@@ -28,8 +28,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 
 func get(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		shorted := r.PathValue("shorted")
-		if url, ok := urls[shorted]; ok {
+		if url, ok := urls[r.URL.Path[1:]]; ok {
 			http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
