@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"github.com/shekshuev/shortener/internal/utils"
 	"io"
 	"net/http"
@@ -40,10 +41,10 @@ func get(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", create)
-	mux.HandleFunc("/{shorted}", get)
-	err := http.ListenAndServe(":8080", mux)
+	r := chi.NewRouter()
+	r.Post("/", create)
+	r.Get("/{shorted}", get)
+	err := http.ListenAndServe(":8080", r)
 	if err != nil {
 		panic(err)
 	}
