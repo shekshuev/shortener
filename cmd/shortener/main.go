@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/shekshuev/shortener/internal/app/config"
 	"github.com/shekshuev/shortener/internal/utils"
 	"io"
 	"net/http"
@@ -21,7 +22,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 		shorted := utils.Shorten(string(body))
 		urls[shorted] = string(body)
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(fmt.Sprintf("http://%s/%s", r.Host, shorted)))
+		w.Write([]byte(fmt.Sprintf("%s/%s", config.FlagRunAddr, shorted)))
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
 	}
@@ -41,10 +42,11 @@ func get(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	config.ParseFlags()
 	r := chi.NewRouter()
 	r.Post("/", create)
 	r.Get("/{shorted}", get)
-	err := http.ListenAndServe(":8080", r)
+	err := http.ListenAndServe(config.FlagRunAddr, r)
 	if err != nil {
 		panic(err)
 	}

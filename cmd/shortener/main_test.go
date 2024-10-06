@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/go-resty/resty/v2"
+	"github.com/shekshuev/shortener/internal/app/config"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -23,6 +24,8 @@ func Test_create(t *testing.T) {
 		{method: http.MethodPatch, expectedCode: http.StatusBadRequest},
 	}
 	srv := httptest.NewServer(http.HandlerFunc(create))
+
+	config.SetConfig(srv.URL, srv.URL)
 
 	defer srv.Close()
 
@@ -47,6 +50,8 @@ func Test_get(t *testing.T) {
 	mux.HandleFunc("/", create)
 	mux.HandleFunc("/{shorted}", get)
 	srv := httptest.NewServer(mux)
+
+	config.SetConfig(srv.URL, srv.URL)
 
 	defer srv.Close()
 
