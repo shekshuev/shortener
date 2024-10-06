@@ -22,7 +22,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 		shorted := utils.Shorten(string(body))
 		urls[shorted] = string(body)
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(fmt.Sprintf("%s/%s", config.FlagRunAddr, shorted)))
+		w.Write([]byte(fmt.Sprintf("http://%s/%s", config.FlagRunAddr, shorted)))
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
 	}

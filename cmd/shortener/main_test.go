@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -25,7 +26,9 @@ func Test_create(t *testing.T) {
 	}
 	srv := httptest.NewServer(http.HandlerFunc(create))
 
-	config.SetConfig(srv.URL, srv.URL)
+	u, err := url.Parse(srv.URL)
+	assert.NoError(t, err, "can't parse server base URL")
+	config.SetConfig(u.Host, srv.URL)
 
 	defer srv.Close()
 
@@ -51,13 +54,15 @@ func Test_get(t *testing.T) {
 	mux.HandleFunc("/{shorted}", get)
 	srv := httptest.NewServer(mux)
 
-	config.SetConfig(srv.URL, srv.URL)
+	u, err := url.Parse(srv.URL)
+	assert.NoError(t, err, "can't parse server base URL")
+	config.SetConfig(u.Host, srv.URL)
 
 	defer srv.Close()
 
-	url := "https://ya.ru"
+	testURL := "https://ya.ru"
 
-	resp, err := resty.New().R().SetBody(url).Post(srv.URL)
+	resp, err := resty.New().R().SetBody(testURL).Post(srv.URL)
 	assert.NoError(t, err, "error making HTTP request")
 	shortedID := "/" + strings.Split(string(resp.Body()), "/")[3]
 
@@ -67,7 +72,7 @@ func Test_get(t *testing.T) {
 		expectedCode        int
 		expectedRedirectURL string
 	}{
-		{method: http.MethodGet, target: shortedID, expectedCode: http.StatusOK, expectedRedirectURL: url},
+		{method: http.MethodGet, target: shortedID, expectedCode: http.StatusOK, expectedRedirectURL: testURL},
 		{method: http.MethodGet, target: "/unknown", expectedCode: http.StatusBadRequest},
 		{method: http.MethodPut, target: shortedID, expectedCode: http.StatusBadRequest},
 		{method: http.MethodPost, target: shortedID, expectedCode: http.StatusBadRequest},
@@ -83,7 +88,7 @@ func Test_get(t *testing.T) {
 			resp, err := req.Send()
 			assert.NoError(t, err, "error making HTTP request")
 			if len(tc.expectedRedirectURL) > 0 {
-				assert.Contains(t, resp.RawResponse.Request.URL.String(), url, "Wrong redirect url")
+				assert.Contains(t, resp.RawResponse.Request.URL.String(), testURL, "Wrong redirect url")
 			}
 		})
 	}
