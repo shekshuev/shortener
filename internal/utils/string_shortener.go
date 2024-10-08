@@ -8,6 +8,9 @@ const (
 )
 
 func Shorten(s string) string {
+	if len(s) == 0 {
+		return ""
+	}
 	keys := make([]rune, ShortenLength)
 	for i := range ShortenLength {
 		keys[i] = rune(charset[rand.Intn(len(charset))])
