@@ -2,16 +2,20 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/shekshuev/shortener/internal/app/config"
 	"github.com/shekshuev/shortener/internal/utils"
-	"io"
-	"net/http"
 )
 
-var urls = make(map[string]string)
+type Shortener struct {
+	urls map[string]string
+}
 
-func create(w http.ResponseWriter, r *http.Request) {
+func (s *Shortener) createUrlHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -20,17 +24,20 @@ func create(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "text/plain")
 		shorted := utils.Shorten(string(body))
-		urls[shorted] = string(body)
+		s.urls[shorted] = string(body)
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(fmt.Sprintf("http://%s/%s", config.FlagRunAddr, shorted)))
+		_, err = w.Write([]byte(fmt.Sprintf("http://%s/%s", r.Host, shorted)))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 }
 
-func get(w http.ResponseWriter, r *http.Request) {
+func (s *Shortener) getUrlHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		if url, ok := urls[r.URL.Path[1:]]; ok {
+		if url, ok := s.urls[r.URL.Path[1:]]; ok {
 			http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
@@ -42,12 +49,12 @@ func get(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	config.ParseFlags()
+	s := &Shortener{urls: make(map[string]string)}
+	cfg := config.GetConfig()
 	r := chi.NewRouter()
-	r.Post("/", create)
-	r.Get("/{shorted}", get)
-	err := http.ListenAndServe(config.FlagRunAddr, r)
-	if err != nil {
-		panic(err)
+	r.Post("/", s.createUrlHandler)
+	r.Get("/{shorted}", s.getUrlHandler)
+	if err := http.ListenAndServe(cfg.FlagRunAddr, r); err != nil {
+		log.Fatalf("Error starting server: %v", err)
 	}
 }

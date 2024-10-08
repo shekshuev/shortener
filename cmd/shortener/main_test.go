@@ -1,14 +1,14 @@
 package main
 
 import (
-	"github.com/go-resty/resty/v2"
-	"github.com/shekshuev/shortener/internal/app/config"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_create(t *testing.T) {
@@ -24,11 +24,11 @@ func Test_create(t *testing.T) {
 		{method: http.MethodDelete, expectedCode: http.StatusBadRequest},
 		{method: http.MethodPatch, expectedCode: http.StatusBadRequest},
 	}
-	srv := httptest.NewServer(http.HandlerFunc(create))
+	s := &Shortener{urls: make(map[string]string)}
+	srv := httptest.NewServer(http.HandlerFunc(s.createUrlHandler))
 
-	u, err := url.Parse(srv.URL)
+	_, err := url.Parse(srv.URL)
 	assert.NoError(t, err, "can't parse server base URL")
-	config.SetConfig(u.Host, srv.URL)
 
 	defer srv.Close()
 
@@ -49,14 +49,14 @@ func Test_create(t *testing.T) {
 }
 
 func Test_get(t *testing.T) {
+	s := &Shortener{urls: make(map[string]string)}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", create)
-	mux.HandleFunc("/{shorted}", get)
+	mux.HandleFunc("/", s.createUrlHandler)
+	mux.HandleFunc("/{shorted}", s.getUrlHandler)
 	srv := httptest.NewServer(mux)
 
-	u, err := url.Parse(srv.URL)
+	_, err := url.Parse(srv.URL)
 	assert.NoError(t, err, "can't parse server base URL")
-	config.SetConfig(u.Host, srv.URL)
 
 	defer srv.Close()
 
