@@ -2,32 +2,41 @@ package config
 
 import (
 	"flag"
-	"log"
-
 	"github.com/caarlos0/env/v6"
+	"log"
+	"os"
 )
 
 type Config struct {
-	FlagRunAddr     string
-	BaseShorterAddr string
+	ServerAddress        string
+	BaseURL              string
+	DefaultServerAddress string
+	DefaultBaseURL       string
 }
 
 type envConfig struct {
-	FlagRunAddr     string `env:"SERVER_ADDRESS"`
-	BaseShorterAddr string `env:"BASE_URL"`
+	ServerAddress string `env:"SERVER_ADDRESS"`
+	BaseURL       string `env:"BASE_URL"`
 }
 
 func GetConfig() Config {
+
 	var cfg Config
+	cfg.DefaultServerAddress = "localhost:8080"
+	cfg.DefaultBaseURL = "http://localhost:8080"
 	parseFlags(&cfg)
 	parsEnv(&cfg)
 	return cfg
 }
 
 func parseFlags(cfg *Config) {
-	flag.StringVar(&cfg.FlagRunAddr, "a", "localhost:8080", "address and port to run server")
-	flag.StringVar(&cfg.BaseShorterAddr, "b", "http://localhost:8080", "base url of shorter address")
-	flag.Parse()
+	f := flag.FlagSet{}
+	f.StringVar(&cfg.ServerAddress, "a", cfg.DefaultServerAddress, "address and port to run server")
+	f.StringVar(&cfg.BaseURL, "b", cfg.DefaultBaseURL, "base url of shorter address")
+	err := f.Parse(os.Args[1:])
+	if err != nil {
+		log.Fatalf("Error parsing flags: %v", err)
+	}
 	parsEnv(cfg)
 }
 
@@ -37,10 +46,10 @@ func parsEnv(cfg *Config) {
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
-	if len(envCfg.BaseShorterAddr) > 0 {
-		cfg.BaseShorterAddr = envCfg.BaseShorterAddr
+	if len(envCfg.BaseURL) > 0 {
+		cfg.BaseURL = envCfg.BaseURL
 	}
-	if len(envCfg.FlagRunAddr) > 0 {
-		cfg.FlagRunAddr = envCfg.FlagRunAddr
+	if len(envCfg.ServerAddress) > 0 {
+		cfg.ServerAddress = envCfg.ServerAddress
 	}
 }

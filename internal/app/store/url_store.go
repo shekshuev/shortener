@@ -10,8 +10,15 @@ func NewURLStore() *URLStore {
 	return &URLStore{urls: make(map[string]string)}
 }
 
-func (s *URLStore) SetURL(key, value string) {
+func (s *URLStore) SetURL(key, value string) error {
+	if len(key) == 0 {
+		return errors.New("key cannot be empty")
+	}
+	if len(value) == 0 {
+		return errors.New("value cannot be empty")
+	}
 	s.urls[key] = value
+	return nil
 }
 
 func (s *URLStore) GetURL(key string) (string, error) {
