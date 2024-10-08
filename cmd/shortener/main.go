@@ -15,7 +15,7 @@ type Shortener struct {
 	urls map[string]string
 }
 
-func (s *Shortener) createUrlHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Shortener) createURLHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -35,7 +35,7 @@ func (s *Shortener) createUrlHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Shortener) getUrlHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Shortener) getURLHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		if url, ok := s.urls[r.URL.Path[1:]]; ok {
 			http.Redirect(w, r, url, http.StatusTemporaryRedirect)
@@ -52,8 +52,8 @@ func main() {
 	s := &Shortener{urls: make(map[string]string)}
 	cfg := config.GetConfig()
 	r := chi.NewRouter()
-	r.Post("/", s.createUrlHandler)
-	r.Get("/{shorted}", s.getUrlHandler)
+	r.Post("/", s.createURLHandler)
+	r.Get("/{shorted}", s.getURLHandler)
 	if err := http.ListenAndServe(cfg.FlagRunAddr, r); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}

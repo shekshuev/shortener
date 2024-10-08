@@ -25,7 +25,7 @@ func Test_create(t *testing.T) {
 		{method: http.MethodPatch, expectedCode: http.StatusBadRequest},
 	}
 	s := &Shortener{urls: make(map[string]string)}
-	srv := httptest.NewServer(http.HandlerFunc(s.createUrlHandler))
+	srv := httptest.NewServer(http.HandlerFunc(s.createURLHandler))
 
 	_, err := url.Parse(srv.URL)
 	assert.NoError(t, err, "can't parse server base URL")
@@ -51,8 +51,8 @@ func Test_create(t *testing.T) {
 func Test_get(t *testing.T) {
 	s := &Shortener{urls: make(map[string]string)}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.createUrlHandler)
-	mux.HandleFunc("/{shorted}", s.getUrlHandler)
+	mux.HandleFunc("/", s.createURLHandler)
+	mux.HandleFunc("/{shorted}", s.getURLHandler)
 	srv := httptest.NewServer(mux)
 
 	_, err := url.Parse(srv.URL)
