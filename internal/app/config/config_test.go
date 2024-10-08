@@ -9,24 +9,24 @@ import (
 
 func TestGetConfig_EnvPriority(t *testing.T) {
 	serverAddress := "localhost:3000"
-	baseUrl := "http://localhost:3000"
+	baseURL := "http://localhost:3000"
 	os.Setenv("SERVER_ADDRESS", serverAddress)
-	os.Setenv("BASE_URL", baseUrl)
+	os.Setenv("BASE_URL", baseURL)
 	defer os.Unsetenv("SERVER_ADDRESS")
 	defer os.Unsetenv("BASE_URL")
 	cfg := GetConfig()
-	assert.Equal(t, cfg.BaseURL, baseUrl)
+	assert.Equal(t, cfg.BaseURL, baseURL)
 	assert.Equal(t, cfg.ServerAddress, serverAddress)
 }
 
 func TestGetConfig_FlagPriority(t *testing.T) {
 	serverAddress := "localhost:3000"
-	baseUrl := "http://localhost:3000"
+	baseURL := "http://localhost:3000"
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	os.Args = []string{"cmd", "-a", serverAddress, "-b", baseUrl}
+	os.Args = []string{"cmd", "-a", serverAddress, "-b", baseURL}
 	defer func() { os.Args = os.Args[:1] }()
 	cfg := GetConfig()
-	assert.Equal(t, cfg.BaseURL, baseUrl)
+	assert.Equal(t, cfg.BaseURL, baseURL)
 	assert.Equal(t, cfg.ServerAddress, serverAddress)
 }
 
