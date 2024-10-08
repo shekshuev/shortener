@@ -14,7 +14,7 @@ func main() {
 	cfg := config.GetConfig()
 	urlStore := store.NewURLStore()
 	urlService := service.NewURLService(urlStore)
-	urlHandler := handler.NewURLHandler(urlService)
+	urlHandler := handler.NewURLHandler(urlService, &cfg)
 	if err := http.ListenAndServe(cfg.FlagRunAddr, urlHandler.Router); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
