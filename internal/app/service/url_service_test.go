@@ -2,10 +2,11 @@ package service
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/shekshuev/shortener/internal/app/config"
 	"github.com/shekshuev/shortener/internal/app/store"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewURLService(t *testing.T) {

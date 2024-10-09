@@ -2,9 +2,9 @@ package config
 
 import (
 	"flag"
-	"github.com/caarlos0/env/v6"
 	"log"
-	"os"
+
+	"github.com/caarlos0/env/v6"
 )
 
 type Config struct {
@@ -30,13 +30,17 @@ func GetConfig() Config {
 }
 
 func parseFlags(cfg *Config) {
-	f := flag.FlagSet{}
-	f.StringVar(&cfg.ServerAddress, "a", cfg.DefaultServerAddress, "address and port to run server")
-	f.StringVar(&cfg.BaseURL, "b", cfg.DefaultBaseURL, "base url of shorter address")
-	err := f.Parse(os.Args[1:])
-	if err != nil {
-		log.Fatalf("Error parsing flags: %v", err)
+	if f := flag.Lookup("a"); f == nil {
+		flag.StringVar(&cfg.ServerAddress, "a", cfg.DefaultServerAddress, "address and port to run server")
+	} else {
+		cfg.ServerAddress = cfg.DefaultServerAddress
 	}
+	if f := flag.Lookup("b"); f == nil {
+		flag.StringVar(&cfg.BaseURL, "b", cfg.DefaultBaseURL, "base URL of shorter address")
+	} else {
+		cfg.BaseURL = cfg.DefaultBaseURL
+	}
+	flag.Parse()
 	parsEnv(cfg)
 }
 

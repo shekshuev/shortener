@@ -1,15 +1,16 @@
 package handler
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/shekshuev/shortener/internal/app/config"
 	"github.com/shekshuev/shortener/internal/app/service"
 	"github.com/shekshuev/shortener/internal/app/store"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
 )
 
 func TestNewURLHandler(t *testing.T) {
