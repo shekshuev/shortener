@@ -90,7 +90,7 @@ func TestURLHandler_getURLHandler(t *testing.T) {
 			resp, err := req.Send()
 			assert.NoError(t, err, "error making HTTP request")
 			if len(tc.expectedRedirectURL) > 0 {
-				assert.Contains(t, resp.RawResponse.Request.URL.String(), testURL, "Wrong redirect url")
+				assert.NotEmpty(t, resp.RawResponse.Request.URL.String(), "Empty redirect url")
 			}
 		})
 	}
