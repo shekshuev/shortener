@@ -2,9 +2,10 @@ package config
 
 import (
 	"flag"
-	"log"
 
 	"github.com/caarlos0/env/v6"
+	"github.com/shekshuev/shortener/internal/app/logger"
+	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -48,7 +49,7 @@ func parsEnv(cfg *Config) {
 	var envCfg envConfig
 	err := env.Parse(&envCfg)
 	if err != nil {
-		log.Fatalf("Error starting server: %v", err)
+		logger.Log.Error("Error starting server", zap.Error(err))
 	}
 	if len(envCfg.BaseURL) > 0 {
 		cfg.BaseURL = envCfg.BaseURL

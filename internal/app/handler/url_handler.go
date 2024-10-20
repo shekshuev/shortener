@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/shekshuev/shortener/internal/app/middleware"
 	"github.com/shekshuev/shortener/internal/app/service"
 )
 
@@ -16,8 +17,8 @@ type URLHandler struct {
 func NewURLHandler(service *service.URLService) *URLHandler {
 	router := chi.NewRouter()
 	h := &URLHandler{service: service, Router: router}
-	router.Post("/", h.createURLHandler)
-	router.Get("/{shorted}", h.getURLHandler)
+	router.Post("/", middleware.RequestLogger(h.createURLHandler))
+	router.Get("/{shorted}", middleware.RequestLogger(h.getURLHandler))
 	return h
 }
 
