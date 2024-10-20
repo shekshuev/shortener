@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"errors"
+	"fmt"
 	"math/rand"
 )
 
@@ -10,9 +10,11 @@ const (
 	charset       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
 
+var ErrEmptyString = fmt.Errorf("string should not be empty")
+
 func Shorten(s string) (string, error) {
 	if len(s) == 0 {
-		return "", errors.New("string should not be empty")
+		return "", ErrEmptyString
 	}
 	keys := make([]rune, ShortenLength)
 	for i := range ShortenLength {

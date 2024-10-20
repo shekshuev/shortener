@@ -1,10 +1,16 @@
 package store
 
-import "errors"
+import (
+	"fmt"
+)
 
 type URLStore struct {
 	urls map[string]string
 }
+
+var ErrEmptyKey = fmt.Errorf("key cannot be empty")
+var ErrEmptyValue = fmt.Errorf("value cannot be empty")
+var ErrNotFound = fmt.Errorf("not found")
 
 func NewURLStore() *URLStore {
 	return &URLStore{urls: make(map[string]string)}
@@ -12,10 +18,10 @@ func NewURLStore() *URLStore {
 
 func (s *URLStore) SetURL(key, value string) error {
 	if len(key) == 0 {
-		return errors.New("key cannot be empty")
+		return ErrEmptyKey
 	}
 	if len(value) == 0 {
-		return errors.New("value cannot be empty")
+		return ErrEmptyValue
 	}
 	s.urls[key] = value
 	return nil
@@ -24,7 +30,7 @@ func (s *URLStore) SetURL(key, value string) error {
 func (s *URLStore) GetURL(key string) (string, error) {
 	value, exists := s.urls[key]
 	if !exists {
-		return "", errors.New("not found")
+		return "", ErrNotFound
 	}
 	return value, nil
 }
