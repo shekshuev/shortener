@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/shekshuev/shortener/internal/app/config"
+	"github.com/shekshuev/shortener/internal/app/models"
 	"github.com/shekshuev/shortener/internal/app/service"
 	"github.com/shekshuev/shortener/internal/app/store"
 	"github.com/stretchr/testify/assert"
@@ -92,7 +94,10 @@ func TestURLHandler_createURLHandlerJSON(t *testing.T) {
 			assert.NoError(t, err, "error making HTTP request")
 			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Response code didn't match expected")
 			if tc.isPositive {
-				assert.Len(t, string(resp.Body()), len(cfg.BaseURL)+shortedLenWithSlash, "Wrong body")
+				var readDTO models.ShortURLReadDTO
+				err := json.Unmarshal(resp.Body(), &readDTO)
+				assert.NoError(t, err, "error unmarshal response body")
+				assert.Len(t, readDTO.Result, len(cfg.BaseURL)+shortedLenWithSlash, "Wrong body")
 			}
 		})
 	}

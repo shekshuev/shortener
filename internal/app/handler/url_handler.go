@@ -59,13 +59,18 @@ func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Content-Type", "application/json")
 		shortURL, err := h.service.CreateShortURL(createDTO.URL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 		w.WriteHeader(http.StatusCreated)
-		_, err = w.Write([]byte(shortURL))
+		readDTO := models.ShortURLReadDTO{Result: shortURL}
+		resp, err := json.Marshal(readDTO)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		_, err = w.Write(resp)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
