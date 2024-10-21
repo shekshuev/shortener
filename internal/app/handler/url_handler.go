@@ -16,12 +16,21 @@ type URLHandler struct {
 	Router  *chi.Mux
 }
 
+type Middleware func(http.HandlerFunc) http.HandlerFunc
+
+func conveyor(h http.HandlerFunc, middlewares ...Middleware) http.HandlerFunc {
+	for _, middleware := range middlewares {
+		h = middleware(h)
+	}
+	return h
+}
+
 func NewURLHandler(service *service.URLService) *URLHandler {
 	router := chi.NewRouter()
 	h := &URLHandler{service: service, Router: router}
-	router.Post("/", middleware.RequestLogger(h.createURLHandler))
-	router.Post("/api/shorten", middleware.RequestLogger(h.createURLHandlerJSON))
-	router.Get("/{shorted}", middleware.RequestLogger(h.getURLHandler))
+	router.Post("/", conveyor(h.createURLHandler, middleware.RequestLogger, middleware.GzipCompressor))
+	router.Post("/api/shorten", conveyor(h.createURLHandlerJSON, middleware.RequestLogger, middleware.GzipCompressor))
+	router.Get("/{shorted}", conveyor(h.getURLHandler, middleware.RequestLogger, middleware.GzipCompressor))
 	return h
 }
 
