@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/shekshuev/shortener/internal/app/config"
+	"github.com/shekshuev/shortener/internal/app/models"
 	"github.com/shekshuev/shortener/internal/app/service"
 	"github.com/shekshuev/shortener/internal/app/store"
 	"github.com/stretchr/testify/assert"
@@ -30,9 +32,10 @@ func TestURLHandler_createURLHandler(t *testing.T) {
 		method       string
 		body         string
 		expectedCode int
+		isPositive   bool
 	}{
-		{name: "Correct body", method: http.MethodPost, expectedCode: http.StatusCreated, body: "https://ya.ru"},
-		{name: "Empty body", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: ""},
+		{name: "Correct body", method: http.MethodPost, expectedCode: http.StatusCreated, body: "https://ya.ru", isPositive: true},
+		{name: "Empty body", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: "", isPositive: false},
 	}
 	s := store.NewURLStore()
 	cfg := config.GetConfig()
@@ -50,8 +53,51 @@ func TestURLHandler_createURLHandler(t *testing.T) {
 			resp, err := req.SetBody(tc.body).Send()
 			assert.NoError(t, err, "error making HTTP request")
 			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Response code didn't match expected")
-			if len(tc.body) > 0 {
+			if tc.isPositive {
 				assert.Len(t, string(resp.Body()), len(cfg.BaseURL)+shortedLenWithSlash, "Wrong body")
+			}
+		})
+	}
+}
+
+func TestURLHandler_createURLHandlerJSON(t *testing.T) {
+	shortedLenWithSlash := 9
+	testCases := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		isPositive   bool
+	}{
+		{name: "Correct JSON", method: http.MethodPost, expectedCode: http.StatusCreated, body: `{ "url": "https://ya.ru" }`, isPositive: true},
+		{name: "Empty JSON", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: "{}", isPositive: false},
+		{name: "Array instead of object", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: "[]", isPositive: false},
+		{name: "Wrong JSON syntax", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: `{ "url": https://ya.ru }`, isPositive: false},
+		{name: "Empty URL", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: `{ "url": "" }`, isPositive: false},
+		{name: "Empty body", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: "", isPositive: false},
+	}
+	s := store.NewURLStore()
+	cfg := config.GetConfig()
+	srv := service.NewURLService(s, &cfg)
+	handler := NewURLHandler(srv)
+	httpSrv := httptest.NewServer(handler.Router)
+
+	defer httpSrv.Close()
+
+	for _, tc := range testCases {
+		t.Run(tc.method, func(t *testing.T) {
+			req := resty.New().R()
+			req.Method = tc.method
+			req.Header.Set("Content-Type", "application/json")
+			req.URL = httpSrv.URL + "/api/shorten"
+			resp, err := req.SetBody(tc.body).Send()
+			assert.NoError(t, err, "error making HTTP request")
+			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Response code didn't match expected")
+			if tc.isPositive {
+				var readDTO models.ShortURLReadDTO
+				err := json.Unmarshal(resp.Body(), &readDTO)
+				assert.NoError(t, err, "error unmarshal response body")
+				assert.Len(t, readDTO.Result, len(cfg.BaseURL)+shortedLenWithSlash, "Wrong body")
 			}
 		})
 	}
