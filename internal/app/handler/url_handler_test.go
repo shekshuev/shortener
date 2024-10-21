@@ -17,8 +17,8 @@ import (
 
 func TestNewURLHandler(t *testing.T) {
 	t.Run("Test NewURLHandler", func(t *testing.T) {
-		s := store.NewURLStore()
 		cfg := config.GetConfig()
+		s := store.NewURLStore(&cfg)
 		srv := service.NewURLService(s, &cfg)
 		handler := NewURLHandler(srv)
 		assert.Equal(t, handler.service, srv, "URLHandler has incorrect service")
@@ -37,8 +37,8 @@ func TestURLHandler_createURLHandler(t *testing.T) {
 		{name: "Correct body", method: http.MethodPost, expectedCode: http.StatusCreated, body: "https://ya.ru", isPositive: true},
 		{name: "Empty body", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: "", isPositive: false},
 	}
-	s := store.NewURLStore()
 	cfg := config.GetConfig()
+	s := store.NewURLStore(&cfg)
 	srv := service.NewURLService(s, &cfg)
 	handler := NewURLHandler(srv)
 	httpSrv := httptest.NewServer(handler.Router)
@@ -76,8 +76,8 @@ func TestURLHandler_createURLHandlerJSON(t *testing.T) {
 		{name: "Empty URL", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: `{ "url": "" }`, isPositive: false},
 		{name: "Empty body", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: "", isPositive: false},
 	}
-	s := store.NewURLStore()
 	cfg := config.GetConfig()
+	s := store.NewURLStore(&cfg)
 	srv := service.NewURLService(s, &cfg)
 	handler := NewURLHandler(srv)
 	httpSrv := httptest.NewServer(handler.Router)
@@ -104,8 +104,8 @@ func TestURLHandler_createURLHandlerJSON(t *testing.T) {
 }
 
 func TestURLHandler_getURLHandler(t *testing.T) {
-	s := store.NewURLStore()
 	cfg := config.GetConfig()
+	s := store.NewURLStore(&cfg)
 	srv := service.NewURLService(s, &cfg)
 	handler := NewURLHandler(srv)
 	httpSrv := httptest.NewServer(handler.Router)

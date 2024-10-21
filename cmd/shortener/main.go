@@ -18,7 +18,7 @@ func main() {
 		log.Fatalf("Error initialize zap logger: %v", err)
 	}
 	cfg := config.GetConfig()
-	urlStore := store.NewURLStore()
+	urlStore := store.NewURLStore(&cfg)
 	urlService := service.NewURLService(urlStore, &cfg)
 	urlHandler := handler.NewURLHandler(urlService)
 	if err := http.ListenAndServe(cfg.ServerAddress, urlHandler.Router); err != nil {
