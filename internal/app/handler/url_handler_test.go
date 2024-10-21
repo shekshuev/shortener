@@ -30,9 +30,10 @@ func TestURLHandler_createURLHandler(t *testing.T) {
 		method       string
 		body         string
 		expectedCode int
+		isPositive   bool
 	}{
-		{name: "Correct body", method: http.MethodPost, expectedCode: http.StatusCreated, body: "https://ya.ru"},
-		{name: "Empty body", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: ""},
+		{name: "Correct body", method: http.MethodPost, expectedCode: http.StatusCreated, body: "https://ya.ru", isPositive: true},
+		{name: "Empty body", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: "", isPositive: false},
 	}
 	s := store.NewURLStore()
 	cfg := config.GetConfig()
@@ -50,7 +51,7 @@ func TestURLHandler_createURLHandler(t *testing.T) {
 			resp, err := req.SetBody(tc.body).Send()
 			assert.NoError(t, err, "error making HTTP request")
 			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Response code didn't match expected")
-			if len(tc.body) > 0 {
+			if tc.isPositive {
 				assert.Len(t, string(resp.Body()), len(cfg.BaseURL)+shortedLenWithSlash, "Wrong body")
 			}
 		})
