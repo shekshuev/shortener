@@ -2,28 +2,32 @@ package config
 
 import (
 	"flag"
-	"log"
 
 	"github.com/caarlos0/env/v6"
+	"github.com/shekshuev/shortener/internal/app/logger"
+	"go.uber.org/zap"
 )
 
 type Config struct {
-	ServerAddress        string
-	BaseURL              string
-	DefaultServerAddress string
-	DefaultBaseURL       string
+	ServerAddress          string
+	BaseURL                string
+	FileStoragePath        string
+	DefaultServerAddress   string
+	DefaultBaseURL         string
+	DefaultFileStoragePath string
 }
 
 type envConfig struct {
-	ServerAddress string `env:"SERVER_ADDRESS"`
-	BaseURL       string `env:"BASE_URL"`
+	ServerAddress   string `env:"SERVER_ADDRESS"`
+	BaseURL         string `env:"BASE_URL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
 func GetConfig() Config {
-
 	var cfg Config
 	cfg.DefaultServerAddress = "localhost:8080"
 	cfg.DefaultBaseURL = "http://localhost:8080"
+	cfg.DefaultFileStoragePath = "./storage.txt"
 	parseFlags(&cfg)
 	parsEnv(&cfg)
 	return cfg
@@ -40,6 +44,11 @@ func parseFlags(cfg *Config) {
 	} else {
 		cfg.BaseURL = cfg.DefaultBaseURL
 	}
+	if f := flag.Lookup("f"); f == nil {
+		flag.StringVar(&cfg.FileStoragePath, "f", cfg.DefaultFileStoragePath, "file storage path")
+	} else {
+		cfg.FileStoragePath = cfg.DefaultFileStoragePath
+	}
 	flag.Parse()
 	parsEnv(cfg)
 }
@@ -47,13 +56,17 @@ func parseFlags(cfg *Config) {
 func parsEnv(cfg *Config) {
 	var envCfg envConfig
 	err := env.Parse(&envCfg)
+	log := logger.GetInstance()
 	if err != nil {
-		log.Fatalf("Error starting server: %v", err)
+		log.Log.Error("Error starting server", zap.Error(err))
 	}
 	if len(envCfg.BaseURL) > 0 {
 		cfg.BaseURL = envCfg.BaseURL
 	}
 	if len(envCfg.ServerAddress) > 0 {
 		cfg.ServerAddress = envCfg.ServerAddress
+	}
+	if len(envCfg.FileStoragePath) > 0 {
+		cfg.FileStoragePath = envCfg.FileStoragePath
 	}
 }

@@ -1,8 +1,10 @@
 package store
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/shekshuev/shortener/internal/app/config"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestURLStore_SetURL(t *testing.T) {
@@ -15,7 +17,8 @@ func TestURLStore_SetURL(t *testing.T) {
 		{name: "Empty key", key: "", value: "test"},
 		{name: "Empty value", key: "test", value: ""},
 	}
-	s := &URLStore{urls: make(map[string]string)}
+	cfg := config.GetConfig()
+	s := &URLStore{urls: make(map[string]string), cfg: &cfg}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := s.SetURL(tc.key, tc.value)
@@ -38,7 +41,8 @@ func TestURLStore_GetURL(t *testing.T) {
 		{name: "Get existing value", key: "test", getKey: "test", value: "test"},
 		{name: "Get not existing value", key: "test", getKey: "not exists", value: "test"},
 	}
-	s := &URLStore{urls: make(map[string]string)}
+	cfg := config.GetConfig()
+	s := &URLStore{urls: make(map[string]string), cfg: &cfg}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := s.SetURL(tc.key, tc.value)

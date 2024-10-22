@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/shekshuev/shortener/internal/app/config"
-
 	"github.com/shekshuev/shortener/internal/app/store"
 	"github.com/shekshuev/shortener/internal/utils"
 )

@@ -2,18 +2,30 @@ package store
 
 import (
 	"fmt"
+
+	"go.uber.org/zap"
+
+	"github.com/shekshuev/shortener/internal/app/config"
+	"github.com/shekshuev/shortener/internal/app/logger"
 )
 
 type URLStore struct {
 	urls map[string]string
+	cfg  *config.Config
 }
 
 var ErrEmptyKey = fmt.Errorf("key cannot be empty")
 var ErrEmptyValue = fmt.Errorf("value cannot be empty")
 var ErrNotFound = fmt.Errorf("not found")
 
-func NewURLStore() *URLStore {
-	return &URLStore{urls: make(map[string]string)}
+func NewURLStore(cfg *config.Config) *URLStore {
+	store := &URLStore{urls: make(map[string]string), cfg: cfg}
+	log := logger.GetInstance()
+	err := LoadSnapshot(store)
+	if err != nil {
+		log.Log.Error("Error loading snapshot", zap.Error(err))
+	}
+	return store
 }
 
 func (s *URLStore) SetURL(key, value string) error {
@@ -24,7 +36,7 @@ func (s *URLStore) SetURL(key, value string) error {
 		return ErrEmptyValue
 	}
 	s.urls[key] = value
-	return nil
+	return CreateSnapshot(s)
 }
 
 func (s *URLStore) GetURL(key string) (string, error) {
