@@ -26,8 +26,12 @@ func (c *GzipWriter) Write(p []byte) (int, error) {
 	return c.zw.Write(p)
 }
 
+func isSuccessCodeHTTP(code int) bool {
+	return code >= 200 && code < 300
+}
+
 func (c *GzipWriter) WriteHeader(statusCode int) {
-	if statusCode < 300 {
+	if isSuccessCodeHTTP(statusCode) {
 		c.w.Header().Set("Content-Encoding", "gzip")
 	}
 	c.w.WriteHeader(statusCode)

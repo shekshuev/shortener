@@ -7,14 +7,14 @@ import (
 	"github.com/shekshuev/shortener/internal/app/compress"
 )
 
-func GzipCompressor(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ow := w
+func GzipCompressor(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tmp := w
 		acceptEncoding := r.Header.Get("Accept-Encoding")
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
 		if supportsGzip {
 			cw := compress.NewGzipWriter(w)
-			ow = cw
+			tmp = cw
 			defer cw.Close()
 		}
 
@@ -29,6 +29,6 @@ func GzipCompressor(h http.HandlerFunc) http.HandlerFunc {
 			r.Body = cr
 			defer cr.Close()
 		}
-		h.ServeHTTP(ow, r)
-	}
+		h.ServeHTTP(tmp, r)
+	})
 }

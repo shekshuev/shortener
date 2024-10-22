@@ -1,12 +1,28 @@
 package logger
 
 import (
+	"sync"
+
 	"go.uber.org/zap"
 )
 
-var Log *zap.Logger = zap.NewNop()
+type Logger struct {
+	Log *zap.Logger
+}
 
-func Initialize(level string) error {
+var (
+	instance *Logger
+	once     sync.Once
+)
+
+func GetInstance() *Logger {
+	once.Do(func() {
+		instance = &Logger{Log: zap.NewNop()}
+	})
+	return instance
+}
+
+func (l *Logger) Initialize(level string) error {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
 		return err
@@ -17,6 +33,6 @@ func Initialize(level string) error {
 	if err != nil {
 		return err
 	}
-	Log = zl
+	l.Log = zl
 	return nil
 }
