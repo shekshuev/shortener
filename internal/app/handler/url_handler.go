@@ -28,9 +28,6 @@ func NewURLHandler(service *service.URLService) *URLHandler {
 }
 
 func (h *URLHandler) createURLHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusBadRequest)
-	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -49,9 +46,6 @@ func (h *URLHandler) createURLHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusBadRequest)
-	}
 	var createDTO models.ShortURLCreateDTO
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -80,9 +74,6 @@ func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request
 }
 
 func (h *URLHandler) getURLHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusBadRequest)
-	}
 	if longURL, err := h.service.GetLongURL(r.URL.Path[1:]); err == nil {
 		http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
 	} else {
