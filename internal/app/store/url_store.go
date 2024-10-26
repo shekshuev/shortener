@@ -19,6 +19,7 @@ type URLStore struct {
 var ErrEmptyKey = fmt.Errorf("key cannot be empty")
 var ErrEmptyValue = fmt.Errorf("value cannot be empty")
 var ErrNotFound = fmt.Errorf("not found")
+var ErrNotInitialized = fmt.Errorf("store not initialized")
 
 func NewURLStore(cfg *config.Config) *URLStore {
 	store := &URLStore{urls: make(map[string]string), cfg: cfg}
@@ -33,6 +34,9 @@ func NewURLStore(cfg *config.Config) *URLStore {
 func (s *URLStore) SetURL(key, value string) error {
 	s.mx.Lock()
 	defer s.mx.Unlock()
+	if s.urls == nil {
+		return ErrNotInitialized
+	}
 	if len(key) == 0 {
 		return ErrEmptyKey
 	}
@@ -46,6 +50,9 @@ func (s *URLStore) SetURL(key, value string) error {
 func (s *URLStore) GetURL(key string) (string, error) {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
+	if s.urls == nil {
+		return "", ErrNotInitialized
+	}
 	value, exists := s.urls[key]
 	if !exists {
 		return "", ErrNotFound
