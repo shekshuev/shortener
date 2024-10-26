@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"sync"
 
 	"go.uber.org/zap"
 
@@ -10,6 +11,7 @@ import (
 )
 
 type URLStore struct {
+	mx   sync.RWMutex
 	urls map[string]string
 	cfg  *config.Config
 }
@@ -29,6 +31,8 @@ func NewURLStore(cfg *config.Config) *URLStore {
 }
 
 func (s *URLStore) SetURL(key, value string) error {
+	s.mx.Lock()
+	defer s.mx.Unlock()
 	if len(key) == 0 {
 		return ErrEmptyKey
 	}
@@ -40,6 +44,8 @@ func (s *URLStore) SetURL(key, value string) error {
 }
 
 func (s *URLStore) GetURL(key string) (string, error) {
+	s.mx.RLock()
+	defer s.mx.RUnlock()
 	value, exists := s.urls[key]
 	if !exists {
 		return "", ErrNotFound
