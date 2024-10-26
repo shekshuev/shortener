@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"log"
 	"sync"
 
 	"go.uber.org/zap"
@@ -18,11 +19,14 @@ var (
 func GetInstance() *Logger {
 	once.Do(func() {
 		instance = &Logger{Log: zap.NewNop()}
+		if err := instance.initialize("info"); err != nil {
+			log.Fatalf("Error initialize zap logger: %v", err)
+		}
 	})
 	return instance
 }
 
-func (l *Logger) Initialize(level string) error {
+func (l *Logger) initialize(level string) error {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
 		return err

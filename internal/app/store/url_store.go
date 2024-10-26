@@ -21,7 +21,7 @@ var ErrNotFound = fmt.Errorf("not found")
 func NewURLStore(cfg *config.Config) *URLStore {
 	store := &URLStore{urls: make(map[string]string), cfg: cfg}
 	log := logger.GetInstance()
-	err := LoadSnapshot(store)
+	err := store.LoadSnapshot()
 	if err != nil {
 		log.Log.Error("Error loading snapshot", zap.Error(err))
 	}
@@ -36,7 +36,7 @@ func (s *URLStore) SetURL(key, value string) error {
 		return ErrEmptyValue
 	}
 	s.urls[key] = value
-	return CreateSnapshot(s)
+	return s.CreateSnapshot()
 }
 
 func (s *URLStore) GetURL(key string) (string, error) {

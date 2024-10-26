@@ -21,7 +21,7 @@ func TestCreateSnapshot(t *testing.T) {
 	store.urls["short1"] = "https://ya.ru"
 	store.urls["short2"] = "https://google.com"
 
-	err := CreateSnapshot(store)
+	err := store.CreateSnapshot()
 	assert.Nil(t, err, "Error should be nil when creating snapshot")
 
 	fileInfo, err := os.Stat(cfg.FileStoragePath)
@@ -38,11 +38,11 @@ func TestLoadSnapshot(t *testing.T) {
 
 	store.urls["short1"] = "https://ya.ru"
 	store.urls["short2"] = "https://google.com"
-	err := CreateSnapshot(store)
+	err := store.CreateSnapshot()
 	assert.Nil(t, err, "Error should be nil when creating snapshot")
 
 	store2 := &URLStore{urls: make(map[string]string), cfg: &cfg}
-	err = LoadSnapshot(store2)
+	err = store2.LoadSnapshot()
 	assert.Nil(t, err, "Error should be nil when loading snapshot")
 
 	assert.Equal(t, store.urls["short1"], store2.urls["short1"], "Loaded value for short1 does not match")
@@ -55,7 +55,7 @@ func TestLoadSnapshot_FileDoesNotExist(t *testing.T) {
 
 	store := &URLStore{urls: make(map[string]string), cfg: &cfg}
 
-	err := LoadSnapshot(store)
+	err := store.LoadSnapshot()
 	assert.Nil(t, err, "Error should be nil when loading snapshot from non-existent file")
 	assert.Empty(t, store.urls, "URL map should be empty when loading from a non-existent file")
 }

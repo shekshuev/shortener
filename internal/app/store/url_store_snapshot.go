@@ -9,14 +9,14 @@ import (
 	"github.com/shekshuev/shortener/internal/app/models"
 )
 
-func CreateSnapshot(store *URLStore) error {
-	file, err := os.OpenFile(store.cfg.FileStoragePath, os.O_CREATE|os.O_WRONLY, 0644)
+func (s *URLStore) CreateSnapshot() error {
+	file, err := os.OpenFile(s.cfg.FileStoragePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	for key, value := range store.urls {
+	for key, value := range s.urls {
 		urlData := models.SerializeData{
 			UUID:        uuid.New().String(),
 			ShortURL:    key,
@@ -36,12 +36,12 @@ func CreateSnapshot(store *URLStore) error {
 	return nil
 }
 
-func LoadSnapshot(store *URLStore) error {
-	if _, err := os.Stat(store.cfg.FileStoragePath); os.IsNotExist(err) {
+func (s *URLStore) LoadSnapshot() error {
+	if _, err := os.Stat(s.cfg.FileStoragePath); os.IsNotExist(err) {
 		return nil
 	}
 
-	file, err := os.Open(store.cfg.FileStoragePath)
+	file, err := os.Open(s.cfg.FileStoragePath)
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func LoadSnapshot(store *URLStore) error {
 		if err != nil {
 			continue
 		}
-		store.urls[urlData.ShortURL] = urlData.OriginalURL
+		s.urls[urlData.ShortURL] = urlData.OriginalURL
 	}
 
 	if err := scanner.Err(); err != nil {

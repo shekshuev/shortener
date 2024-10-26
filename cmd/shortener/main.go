@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/shekshuev/shortener/internal/app/config"
@@ -15,9 +14,6 @@ import (
 
 func main() {
 	l := logger.GetInstance()
-	if err := l.Initialize("info"); err != nil {
-		log.Fatalf("Error initialize zap logger: %v", err)
-	}
 	cfg := config.GetConfig()
 	urlStore := store.NewURLStore(&cfg)
 	urlService := service.NewURLService(urlStore, &cfg)
