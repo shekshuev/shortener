@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"path"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shekshuev/shortener/internal/app/middleware"
@@ -74,7 +75,8 @@ func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request
 }
 
 func (h *URLHandler) getURLHandler(w http.ResponseWriter, r *http.Request) {
-	if longURL, err := h.service.GetLongURL(r.URL.Path[1:]); err == nil {
+	urlPath := path.Base(r.URL.Path)
+	if longURL, err := h.service.GetLongURL(urlPath); err == nil {
 		http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
