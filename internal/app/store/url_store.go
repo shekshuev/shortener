@@ -44,7 +44,7 @@ func (s *URLStore) SetURL(key, value string) error {
 		return ErrEmptyValue
 	}
 	s.urls[key] = value
-	return s.CreateSnapshot()
+	return nil
 }
 
 func (s *URLStore) GetURL(key string) (string, error) {
