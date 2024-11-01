@@ -23,7 +23,7 @@ var ErrNotInitialized = fmt.Errorf("store not initialized")
 
 func NewURLStore(cfg *config.Config) *URLStore {
 	store := &URLStore{urls: make(map[string]string), cfg: cfg}
-	log := logger.GetInstance()
+	log := logger.NewLogger()
 	err := store.LoadSnapshot()
 	if err != nil {
 		log.Log.Error("Error loading snapshot", zap.Error(err))

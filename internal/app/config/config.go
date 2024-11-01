@@ -54,11 +54,11 @@ func parseFlags(cfg *Config) {
 }
 
 func parsEnv(cfg *Config) {
+	l := logger.NewLogger()
 	var envCfg envConfig
 	err := env.Parse(&envCfg)
-	log := logger.GetInstance()
 	if err != nil {
-		log.Log.Error("Error starting server", zap.Error(err))
+		l.Log.Error("Error starting server", zap.Error(err))
 	}
 	if len(envCfg.BaseURL) > 0 {
 		cfg.BaseURL = envCfg.BaseURL

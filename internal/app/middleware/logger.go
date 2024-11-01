@@ -32,7 +32,7 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 }
 
 func RequestLogger(h http.Handler) http.Handler {
-	log := logger.GetInstance()
+	log := logger.NewLogger()
 	logFn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 

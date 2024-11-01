@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	l := logger.GetInstance()
+	l := logger.NewLogger()
 	cfg := config.GetConfig()
 	urlStore := store.NewURLStore(&cfg)
 	urlService := service.NewURLService(urlStore, &cfg)
