@@ -11,8 +11,8 @@ import (
 
 func TestNewURLService(t *testing.T) {
 	t.Run("Test NewURLService", func(t *testing.T) {
-		s := store.NewURLStore()
 		cfg := config.GetConfig()
+		s := store.NewURLStore(&cfg)
 		service := NewURLService(s, &cfg)
 		assert.Equal(t, service.store, s, "URLService has incorrect store")
 	})
@@ -27,8 +27,8 @@ func TestURLService_CreateShortURL(t *testing.T) {
 		{name: "Normal long URL", longURL: "https://example.com"},
 		{name: "Empty long URL", longURL: ""},
 	}
-	s := store.NewURLStore()
 	cfg := config.GetConfig()
+	s := store.NewURLStore(&cfg)
 	service := NewURLService(s, &cfg)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -53,8 +53,8 @@ func TestURLService_GetLongURL(t *testing.T) {
 		{name: "Existing short URL", shorted: shorted},
 		{name: "Non-existing short URL", shorted: "non-existing"},
 	}
-	s := store.NewURLStore()
 	cfg := config.GetConfig()
+	s := store.NewURLStore(&cfg)
 	service := NewURLService(s, &cfg)
 	err := s.SetURL(shorted, longURL)
 	assert.Nil(t, err, "Set url store error is not nil")
