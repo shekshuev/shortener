@@ -12,15 +12,18 @@ type Config struct {
 	ServerAddress          string
 	BaseURL                string
 	FileStoragePath        string
+	DatabaseDSN            string
 	DefaultServerAddress   string
 	DefaultBaseURL         string
 	DefaultFileStoragePath string
+	DefaultDatabaseDSN     string
 }
 
 type envConfig struct {
 	ServerAddress   string `env:"SERVER_ADDRESS"`
 	BaseURL         string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	DatabaseDSN     string `env:"DATABASE_DSN"`
 }
 
 func GetConfig() Config {
@@ -28,6 +31,7 @@ func GetConfig() Config {
 	cfg.DefaultServerAddress = "localhost:8080"
 	cfg.DefaultBaseURL = "http://localhost:8080"
 	cfg.DefaultFileStoragePath = "./storage.txt"
+	cfg.DefaultDatabaseDSN = ""
 	parseFlags(&cfg)
 	parsEnv(&cfg)
 	return cfg
@@ -49,6 +53,11 @@ func parseFlags(cfg *Config) {
 	} else {
 		cfg.FileStoragePath = cfg.DefaultFileStoragePath
 	}
+	if f := flag.Lookup("d"); f == nil {
+		flag.StringVar(&cfg.DatabaseDSN, "d", cfg.DefaultDatabaseDSN, "database connection string")
+	} else {
+		cfg.DatabaseDSN = cfg.DefaultDatabaseDSN
+	}
 	flag.Parse()
 	parsEnv(cfg)
 }
@@ -68,5 +77,8 @@ func parsEnv(cfg *Config) {
 	}
 	if len(envCfg.FileStoragePath) > 0 {
 		cfg.FileStoragePath = envCfg.FileStoragePath
+	}
+	if len(envCfg.DatabaseDSN) > 0 {
+		cfg.DatabaseDSN = envCfg.DatabaseDSN
 	}
 }
