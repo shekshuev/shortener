@@ -14,6 +14,7 @@ import (
 	"github.com/shekshuev/shortener/internal/app/service"
 	"github.com/shekshuev/shortener/internal/app/store"
 
+	_ "github.com/joho/godotenv/autoload"
 	"go.uber.org/zap"
 )
 
