@@ -46,6 +46,11 @@ func main() {
 	} else {
 		l.Log.Info("Snapshot saved successfully")
 	}
+	if err := urlStore.Close(); err != nil {
+		l.Log.Error("Error closing database connection", zap.Error(err))
+	} else {
+		l.Log.Info("Database connection closed successfully")
+	}
 	if err := server.Shutdown(ctx); err != nil {
 		l.Log.Error("Server forced to shutdown", zap.Error(err))
 	} else {

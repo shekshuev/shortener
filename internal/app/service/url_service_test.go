@@ -1,10 +1,12 @@
 package service
 
 import (
+	"database/sql"
 	"fmt"
 	"testing"
 
 	"github.com/shekshuev/shortener/internal/app/config"
+	"github.com/shekshuev/shortener/internal/app/mocks"
 	"github.com/shekshuev/shortener/internal/app/store"
 	"github.com/stretchr/testify/assert"
 )
@@ -67,6 +69,32 @@ func TestURLService_GetLongURL(t *testing.T) {
 				assert.Nil(t, err, "Error is not nil")
 				assert.Equal(t, longURL, longURL)
 			}
+		})
+	}
+}
+
+func TestURLService_CheckDBConnection(t *testing.T) {
+	testCases := []struct {
+		name     string
+		hasError bool
+		error    error
+	}{
+		{name: "Success", hasError: false, error: nil},
+		{name: "Error", hasError: true, error: sql.ErrConnDone},
+	}
+
+	cfg := config.GetConfig()
+
+	mockStore := new(mocks.MockStore)
+	service := NewURLService(mockStore, &cfg)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockStore.On("CheckDBConnection").Return(tc.error)
+			err := service.CheckDBConnection()
+			assert.Equal(t, tc.hasError, err != nil, "CheckDBConnection failed")
+			mockStore.AssertCalled(t, "CheckDBConnection")
+			mockStore.ExpectedCalls = nil
 		})
 	}
 }

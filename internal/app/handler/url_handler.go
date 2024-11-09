@@ -25,6 +25,7 @@ func NewURLHandler(service *service.URLService) *URLHandler {
 	router.Post("/", h.createURLHandler)
 	router.Post("/api/shorten", h.createURLHandlerJSON)
 	router.Get("/{shorted}", h.getURLHandler)
+	router.Get("/ping", h.pingURLHandler)
 	return h
 }
 
@@ -82,4 +83,13 @@ func (h *URLHandler) getURLHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
+}
+
+func (h *URLHandler) pingURLHandler(w http.ResponseWriter, _ *http.Request) {
+	err := h.service.CheckDBConnection()
+	if err == nil {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }

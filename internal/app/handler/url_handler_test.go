@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/shekshuev/shortener/internal/app/config"
+	"github.com/shekshuev/shortener/internal/app/mocks"
 	"github.com/shekshuev/shortener/internal/app/models"
 	"github.com/shekshuev/shortener/internal/app/service"
 	"github.com/shekshuev/shortener/internal/app/store"
@@ -138,6 +140,37 @@ func TestURLHandler_getURLHandler(t *testing.T) {
 			if len(tc.expectedRedirectURL) > 0 {
 				assert.NotEmpty(t, resp.RawResponse.Request.URL.String(), "Empty redirect url")
 			}
+		})
+	}
+}
+
+func TestURLHandler_pingURLHandler(t *testing.T) {
+	cfg := config.GetConfig()
+	mockStore := new(mocks.MockStore)
+	srv := service.NewURLService(mockStore, &cfg)
+	handler := NewURLHandler(srv)
+	httpSrv := httptest.NewServer(handler.Router)
+
+	testCases := []struct {
+		method       string
+		target       string
+		expectedCode int
+		error        error
+	}{
+		{method: http.MethodGet, target: "/ping", expectedCode: http.StatusOK, error: nil},
+		{method: http.MethodGet, target: "/ping", expectedCode: http.StatusInternalServerError, error: sql.ErrConnDone},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.method, func(t *testing.T) {
+			mockStore.On("CheckDBConnection").Return(tc.error)
+			req := resty.New().R()
+			req.Method = tc.method
+			req.URL = httpSrv.URL + tc.target
+
+			resp, err := req.Send()
+			assert.NoError(t, err, "error making HTTP request")
+			assert.Equal(t, resp.StatusCode(), tc.expectedCode)
+			mockStore.ExpectedCalls = nil
 		})
 	}
 }

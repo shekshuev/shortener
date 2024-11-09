@@ -1,8 +1,10 @@
 package store
 
 import (
+	"database/sql"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/shekshuev/shortener/internal/app/config"
 	"github.com/stretchr/testify/assert"
 )
@@ -57,4 +59,34 @@ func TestURLStore_GetURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestURLStore_CheckDBConnection(t *testing.T) {
+	testCases := []struct {
+		hasError bool
+		name     string
+		error    error
+	}{
+		{name: "Success", hasError: false, error: nil},
+		{name: "Error", hasError: true, error: sql.ErrConnDone},
+	}
+
+	cfg := config.GetConfig()
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	if err != nil {
+		t.Fatalf("Error create db mock: %v", err)
+	}
+	defer db.Close()
+	s := &URLStore{urls: make(map[string]string), cfg: &cfg, db: db}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mock.ExpectPing().WillReturnError(tc.error)
+			err = s.CheckDBConnection()
+			assert.Equal(t, tc.hasError, err != nil, "CheckDBConnection failed")
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("Not all expectations were met: %v", err)
+			}
+		})
+	}
+
 }

@@ -9,11 +9,11 @@ import (
 )
 
 type URLService struct {
-	store *store.URLStore
+	store store.Store
 	cfg   *config.Config
 }
 
-func NewURLService(store *store.URLStore, cfg *config.Config) *URLService {
+func NewURLService(store store.Store, cfg *config.Config) *URLService {
 	return &URLService{store: store, cfg: cfg}
 }
 
@@ -37,4 +37,8 @@ func (s *URLService) GetLongURL(shortURL string) (string, error) {
 		return "", err
 	}
 	return longURL, nil
+}
+
+func (s *URLService) CheckDBConnection() error {
+	return s.store.CheckDBConnection()
 }

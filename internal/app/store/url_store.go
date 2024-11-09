@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"sync"
 
+	"database/sql"
+
+	_ "github.com/jackc/pgx/stdlib"
 	"go.uber.org/zap"
 
 	"github.com/shekshuev/shortener/internal/app/config"
@@ -14,6 +17,7 @@ type URLStore struct {
 	mx   sync.RWMutex
 	urls map[string]string
 	cfg  *config.Config
+	db   *sql.DB
 }
 
 var ErrEmptyKey = fmt.Errorf("key cannot be empty")
@@ -22,9 +26,13 @@ var ErrNotFound = fmt.Errorf("not found")
 var ErrNotInitialized = fmt.Errorf("store not initialized")
 
 func NewURLStore(cfg *config.Config) *URLStore {
-	store := &URLStore{urls: make(map[string]string), cfg: cfg}
 	log := logger.NewLogger()
-	err := store.LoadSnapshot()
+	db, err := sql.Open("pgx", cfg.DatabaseDSN)
+	if err != nil {
+		log.Log.Fatal("Error connecting to database", zap.Error(err))
+	}
+	store := &URLStore{urls: make(map[string]string), cfg: cfg, db: db}
+	err = store.LoadSnapshot()
 	if err != nil {
 		log.Log.Error("Error loading snapshot", zap.Error(err))
 	}
@@ -58,4 +66,15 @@ func (s *URLStore) GetURL(key string) (string, error) {
 		return "", ErrNotFound
 	}
 	return value, nil
+}
+
+func (s *URLStore) Close() error {
+	if s.db != nil {
+		return s.db.Close()
+	}
+	return nil
+}
+
+func (s *URLStore) CheckDBConnection() error {
+	return s.db.Ping()
 }
