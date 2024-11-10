@@ -30,7 +30,7 @@ func TestURLService_CreateShortURL(t *testing.T) {
 		{name: "Empty long URL", longURL: ""},
 	}
 	cfg := config.GetConfig()
-	s := store.NewURLStore(&cfg)
+	s := mocks.NewURLStore()
 	service := NewURLService(s, &cfg)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -56,7 +56,7 @@ func TestURLService_GetLongURL(t *testing.T) {
 		{name: "Non-existing short URL", shorted: "non-existing"},
 	}
 	cfg := config.GetConfig()
-	s := store.NewURLStore(&cfg)
+	s := mocks.NewURLStore()
 	service := NewURLService(s, &cfg)
 	err := s.SetURL(shorted, longURL)
 	assert.Nil(t, err, "Set url store error is not nil")
@@ -85,7 +85,7 @@ func TestURLService_CheckDBConnection(t *testing.T) {
 
 	cfg := config.GetConfig()
 
-	mockStore := new(mocks.MockStore)
+	mockStore := mocks.NewURLStore()
 	service := NewURLService(mockStore, &cfg)
 
 	for _, tc := range testCases {

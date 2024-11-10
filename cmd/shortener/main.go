@@ -41,11 +41,6 @@ func main() {
 	l.Log.Info("Shutting down server...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := urlStore.CreateSnapshot(); err != nil {
-		l.Log.Error("Error saving snapshot during shutdown", zap.Error(err))
-	} else {
-		l.Log.Info("Snapshot saved successfully")
-	}
 	if err := urlStore.Close(); err != nil {
 		l.Log.Error("Error closing database connection", zap.Error(err))
 	} else {
