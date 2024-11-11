@@ -1,8 +1,6 @@
 package store
 
 import (
-	"fmt"
-
 	"database/sql"
 
 	_ "github.com/jackc/pgx/stdlib"
@@ -17,12 +15,7 @@ type PostgresURLStore struct {
 	db  *sql.DB
 }
 
-var ErrEmptyKey = fmt.Errorf("key cannot be empty")
-var ErrEmptyValue = fmt.Errorf("value cannot be empty")
-var ErrNotFound = fmt.Errorf("not found")
-var ErrNotInitialized = fmt.Errorf("store not initialized")
-
-func NewURLStore(cfg *config.Config) *PostgresURLStore {
+func NewPostgresURLStore(cfg *config.Config) *PostgresURLStore {
 	log := logger.NewLogger()
 	db, err := sql.Open("pgx", cfg.DatabaseDSN)
 	if err != nil {

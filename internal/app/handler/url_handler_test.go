@@ -13,14 +13,13 @@ import (
 	"github.com/shekshuev/shortener/internal/app/mocks"
 	"github.com/shekshuev/shortener/internal/app/models"
 	"github.com/shekshuev/shortener/internal/app/service"
-	"github.com/shekshuev/shortener/internal/app/store"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewURLHandler(t *testing.T) {
 	t.Run("Test NewURLHandler", func(t *testing.T) {
 		cfg := config.GetConfig()
-		s := store.NewURLStore(&cfg)
+		s := mocks.NewURLStore()
 		srv := service.NewURLService(s, &cfg)
 		handler := NewURLHandler(srv)
 		assert.Equal(t, handler.service, srv, "URLHandler has incorrect service")
@@ -40,7 +39,7 @@ func TestURLHandler_createURLHandler(t *testing.T) {
 		{name: "Empty body", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: "", isPositive: false},
 	}
 	cfg := config.GetConfig()
-	s := store.NewURLStore(&cfg)
+	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
 	handler := NewURLHandler(srv)
 	httpSrv := httptest.NewServer(handler.Router)
@@ -79,7 +78,7 @@ func TestURLHandler_createURLHandlerJSON(t *testing.T) {
 		{name: "Empty body", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: "", isPositive: false},
 	}
 	cfg := config.GetConfig()
-	s := store.NewURLStore(&cfg)
+	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
 	handler := NewURLHandler(srv)
 	httpSrv := httptest.NewServer(handler.Router)
@@ -107,7 +106,7 @@ func TestURLHandler_createURLHandlerJSON(t *testing.T) {
 
 func TestURLHandler_getURLHandler(t *testing.T) {
 	cfg := config.GetConfig()
-	s := store.NewURLStore(&cfg)
+	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
 	handler := NewURLHandler(srv)
 	httpSrv := httptest.NewServer(handler.Router)

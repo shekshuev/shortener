@@ -21,7 +21,12 @@ import (
 func main() {
 	l := logger.NewLogger()
 	cfg := config.GetConfig()
-	urlStore := store.NewURLStore(&cfg)
+	var urlStore store.URLStore = nil
+	if cfg.DatabaseDSN == cfg.DefaultDatabaseDSN {
+		urlStore = store.NewMemoryURLStore(&cfg)
+	} else {
+		urlStore = store.NewPostgresURLStore(&cfg)
+	}
 	urlService := service.NewURLService(urlStore, &cfg)
 	urlHandler := handler.NewURLHandler(urlService)
 	server := &http.Server{
@@ -42,9 +47,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := urlStore.Close(); err != nil {
-		l.Log.Error("Error closing database connection", zap.Error(err))
+		l.Log.Error("Error closing store", zap.Error(err))
 	} else {
-		l.Log.Info("Database connection closed successfully")
+		l.Log.Info("Store closed")
 	}
 	if err := server.Shutdown(ctx); err != nil {
 		l.Log.Error("Server forced to shutdown", zap.Error(err))

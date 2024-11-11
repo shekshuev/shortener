@@ -7,14 +7,13 @@ import (
 
 	"github.com/shekshuev/shortener/internal/app/config"
 	"github.com/shekshuev/shortener/internal/app/mocks"
-	"github.com/shekshuev/shortener/internal/app/store"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewURLService(t *testing.T) {
 	t.Run("Test NewURLService", func(t *testing.T) {
 		cfg := config.GetConfig()
-		s := store.NewURLStore(&cfg)
+		s := mocks.NewURLStore()
 		service := NewURLService(s, &cfg)
 		assert.Equal(t, service.store, s, "URLService has incorrect store")
 	})

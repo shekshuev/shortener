@@ -13,11 +13,11 @@ import (
 )
 
 type URLHandler struct {
-	service *service.URLService
+	service service.Service
 	Router  *chi.Mux
 }
 
-func NewURLHandler(service *service.URLService) *URLHandler {
+func NewURLHandler(service service.Service) *URLHandler {
 	router := chi.NewRouter()
 	router.Use(middleware.RequestLogger)
 	router.Use(middleware.GzipCompressor)

@@ -8,10 +8,18 @@ import (
 	"github.com/shekshuev/shortener/internal/utils"
 )
 
+type Service interface {
+	CreateShortURL(longURL string) (string, error)
+	GetLongURL(shortURL string) (string, error)
+	CheckDBConnection() error
+}
+
 type URLService struct {
 	store store.URLStore
 	cfg   *config.Config
 }
+
+var ErrNotPostgresStore = fmt.Errorf("app using in-memory store, not postgres")
 
 func NewURLService(store store.URLStore, cfg *config.Config) *URLService {
 	return &URLService{store: store, cfg: cfg}
@@ -40,5 +48,8 @@ func (s *URLService) GetLongURL(shortURL string) (string, error) {
 }
 
 func (s *URLService) CheckDBConnection() error {
-	return s.store.CheckDBConnection()
+	if dbChecker, ok := s.store.(store.DatabaseChecker); ok {
+		return dbChecker.CheckDBConnection()
+	}
+	return ErrNotPostgresStore
 }

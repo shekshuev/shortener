@@ -35,3 +35,8 @@ func (m *MockStore) CheckDBConnection() error {
 	args := m.Called()
 	return args.Error(0)
 }
+
+func (m *MockStore) Close() error {
+	args := m.Called()
+	return args.Error(0)
+}
