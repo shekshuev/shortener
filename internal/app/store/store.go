@@ -1,6 +1,6 @@
 package store
 
-type Store interface {
+type URLStore interface {
 	SetURL(key, value string) error
 	GetURL(key string) (string, error)
 	CheckDBConnection() error

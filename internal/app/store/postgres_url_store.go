@@ -12,7 +12,7 @@ import (
 	"github.com/shekshuev/shortener/internal/app/logger"
 )
 
-type URLStore struct {
+type PostgresURLStore struct {
 	cfg *config.Config
 	db  *sql.DB
 }
@@ -22,7 +22,7 @@ var ErrEmptyValue = fmt.Errorf("value cannot be empty")
 var ErrNotFound = fmt.Errorf("not found")
 var ErrNotInitialized = fmt.Errorf("store not initialized")
 
-func NewURLStore(cfg *config.Config) *URLStore {
+func NewURLStore(cfg *config.Config) *PostgresURLStore {
 	log := logger.NewLogger()
 	db, err := sql.Open("pgx", cfg.DatabaseDSN)
 	if err != nil {
@@ -60,11 +60,11 @@ func NewURLStore(cfg *config.Config) *URLStore {
 	if err != nil {
 		log.Log.Error("Error connecting to database", zap.Error(err))
 	}
-	store := &URLStore{cfg: cfg, db: db}
+	store := &PostgresURLStore{cfg: cfg, db: db}
 	return store
 }
 
-func (s *URLStore) SetURL(key, value string) error {
+func (s *PostgresURLStore) SetURL(key, value string) error {
 	if len(key) == 0 {
 		return ErrEmptyKey
 	}
@@ -83,7 +83,7 @@ func (s *URLStore) SetURL(key, value string) error {
 	return nil
 }
 
-func (s *URLStore) GetURL(key string) (string, error) {
+func (s *PostgresURLStore) GetURL(key string) (string, error) {
 	query := `
 		select original_url from urls where shorted_url = $1
 	`
@@ -95,13 +95,13 @@ func (s *URLStore) GetURL(key string) (string, error) {
 	return value, nil
 }
 
-func (s *URLStore) Close() error {
+func (s *PostgresURLStore) Close() error {
 	if s.db != nil {
 		return s.db.Close()
 	}
 	return nil
 }
 
-func (s *URLStore) CheckDBConnection() error {
+func (s *PostgresURLStore) CheckDBConnection() error {
 	return s.db.Ping()
 }

@@ -9,11 +9,11 @@ import (
 )
 
 type URLService struct {
-	store store.Store
+	store store.URLStore
 	cfg   *config.Config
 }
 
-func NewURLService(store store.Store, cfg *config.Config) *URLService {
+func NewURLService(store store.URLStore, cfg *config.Config) *URLService {
 	return &URLService{store: store, cfg: cfg}
 }
 

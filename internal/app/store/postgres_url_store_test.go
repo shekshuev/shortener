@@ -25,7 +25,7 @@ func TestURLStore_SetURL(t *testing.T) {
 		t.Fatalf("Error creating db mock: %v", err)
 	}
 	defer db.Close()
-	s := &URLStore{cfg: &cfg, db: db}
+	s := &PostgresURLStore{cfg: &cfg, db: db}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			if len(tc.key) > 0 && len(tc.value) > 0 {
@@ -64,7 +64,7 @@ func TestURLStore_GetURL(t *testing.T) {
 		t.Fatalf("Error create db mock: %v", err)
 	}
 	defer db.Close()
-	s := &URLStore{cfg: &cfg, db: db}
+	s := &PostgresURLStore{cfg: &cfg, db: db}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mock.ExpectExec(`(?i)insert into urls \(original_url, shorted_url\) values \(\$1, \$2\) on conflict \(original_url\) do update set shorted_url = excluded.shorted_url, updated_at = now\(\);`).
@@ -113,7 +113,7 @@ func TestURLStore_CheckDBConnection(t *testing.T) {
 		t.Fatalf("Error create db mock: %v", err)
 	}
 	defer db.Close()
-	s := &URLStore{cfg: &cfg, db: db}
+	s := &PostgresURLStore{cfg: &cfg, db: db}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mock.ExpectPing().WillReturnError(tc.error)
