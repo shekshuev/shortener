@@ -24,6 +24,7 @@ func NewURLHandler(service service.Service) *URLHandler {
 	h := &URLHandler{service: service, Router: router}
 	router.Post("/", h.createURLHandler)
 	router.Post("/api/shorten", h.createURLHandlerJSON)
+	router.Post("/api/shorten/batch", h.batchCreateURLHandlerJSON)
 	router.Get("/{shorted}", h.getURLHandler)
 	router.Get("/ping", h.pingURLHandler)
 	return h
@@ -91,5 +92,32 @@ func (h *URLHandler) pingURLHandler(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func (h *URLHandler) batchCreateURLHandlerJSON(w http.ResponseWriter, r *http.Request) {
+	var createDTO []models.BatchShortURLCreateDTO
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err = json.Unmarshal([]byte(body), &createDTO); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	readDTO, err := h.service.BatchCreateShortURL(createDTO)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	w.WriteHeader(http.StatusCreated)
+	resp, err := json.Marshal(readDTO)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	_, err = w.Write(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 }

@@ -3,6 +3,7 @@ package mocks
 import (
 	"fmt"
 
+	"github.com/shekshuev/shortener/internal/app/models"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -20,6 +21,13 @@ func NewURLStore() *MockStore {
 
 func (m *MockStore) SetURL(key, value string) error {
 	m.urls[key] = value
+	return nil
+}
+
+func (m *MockStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO) error {
+	for _, dto := range createDTO {
+		m.urls[dto.ShortURL] = dto.OriginalURL
+	}
 	return nil
 }
 

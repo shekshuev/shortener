@@ -4,12 +4,14 @@ import (
 	"fmt"
 
 	"github.com/shekshuev/shortener/internal/app/config"
+	"github.com/shekshuev/shortener/internal/app/models"
 	"github.com/shekshuev/shortener/internal/app/store"
 	"github.com/shekshuev/shortener/internal/utils"
 )
 
 type Service interface {
 	CreateShortURL(longURL string) (string, error)
+	BatchCreateShortURL(createDTO []models.BatchShortURLCreateDTO) ([]models.BatchShortURLReadDTO, error)
 	GetLongURL(shortURL string) (string, error)
 	CheckDBConnection() error
 }
@@ -37,6 +39,29 @@ func (s *URLService) CreateShortURL(longURL string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%s/%s", s.cfg.BaseURL, shorted), nil
+}
+
+func (s *URLService) BatchCreateShortURL(createDTO []models.BatchShortURLCreateDTO) ([]models.BatchShortURLReadDTO, error) {
+	for i := 0; i < len(createDTO); i++ {
+		shorted, err := utils.Shorten(createDTO[i].OriginalURL)
+		if err != nil {
+			return nil, ErrFailedToShorten
+		}
+		createDTO[i].ShortURL = shorted
+	}
+
+	err := s.store.SetBatchURL(createDTO)
+	if err != nil {
+		return nil, ErrFailedToShorten
+	}
+	readDTO := make([]models.BatchShortURLReadDTO, 0, len(createDTO))
+	for _, dto := range createDTO {
+		readDTO = append(readDTO, models.BatchShortURLReadDTO{
+			CorrelationID: dto.CorrelationID,
+			ShortURL:      fmt.Sprintf("%s/%s", s.cfg.BaseURL, dto.ShortURL),
+		})
+	}
+	return readDTO, nil
 }
 
 func (s *URLService) GetLongURL(shortURL string) (string, error) {

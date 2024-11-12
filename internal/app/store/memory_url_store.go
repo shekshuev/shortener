@@ -7,6 +7,7 @@ import (
 
 	"github.com/shekshuev/shortener/internal/app/config"
 	"github.com/shekshuev/shortener/internal/app/logger"
+	"github.com/shekshuev/shortener/internal/app/models"
 )
 
 type MemoryURLStore struct {
@@ -38,6 +39,26 @@ func (s *MemoryURLStore) SetURL(key, value string) error {
 		return ErrEmptyValue
 	}
 	s.urls[key] = value
+	return nil
+}
+
+func (s *MemoryURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO) error {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	if s.urls == nil {
+		return ErrNotInitialized
+	}
+	for _, dto := range createDTO {
+		if len(dto.ShortURL) == 0 {
+			return ErrEmptyKey
+		}
+		if len(dto.OriginalURL) == 0 {
+			return ErrEmptyValue
+		}
+	}
+	for _, dto := range createDTO {
+		s.urls[dto.ShortURL] = dto.OriginalURL
+	}
 	return nil
 }
 

@@ -1,9 +1,14 @@
 package store
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/shekshuev/shortener/internal/app/models"
+)
 
 type URLStore interface {
 	SetURL(key, value string) error
+	SetBatchURL(createDTO []models.BatchShortURLCreateDTO) error
 	GetURL(key string) (string, error)
 	Close() error
 }

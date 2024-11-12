@@ -8,6 +8,7 @@ import (
 
 	"github.com/shekshuev/shortener/internal/app/config"
 	"github.com/shekshuev/shortener/internal/app/logger"
+	"github.com/shekshuev/shortener/internal/app/models"
 )
 
 type PostgresURLStore struct {
@@ -74,6 +75,33 @@ func (s *PostgresURLStore) SetURL(key, value string) error {
 		log.Log.Error("Error upserting record", zap.Error(err))
 	}
 	return nil
+}
+
+func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO) error {
+	log := logger.NewLogger()
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	query := `
+		insert into urls (original_url, shorted_url) values ($1, $2)
+		on conflict (original_url) do update set shorted_url = excluded.shorted_url, updated_at = now();
+	`
+	for _, dto := range createDTO {
+		if len(dto.ShortURL) == 0 {
+			return ErrEmptyKey
+		}
+		if len(dto.OriginalURL) == 0 {
+			return ErrEmptyValue
+		}
+		_, err := s.db.Exec(query, dto.OriginalURL, dto.ShortURL)
+		if err != nil {
+			log.Log.Error("Error upserting record", zap.Error(err))
+			tx.Rollback()
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 func (s *PostgresURLStore) GetURL(key string) (string, error) {
