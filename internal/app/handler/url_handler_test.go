@@ -104,6 +104,59 @@ func TestURLHandler_createURLHandlerJSON(t *testing.T) {
 	}
 }
 
+func TestURLHandler_batchCreateURLHandlerJSON(t *testing.T) {
+	shortedLenWithSlash := 9
+	testCases := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		isPositive   bool
+	}{
+		{name: "Correct JSON",
+			method:       http.MethodPost,
+			expectedCode: http.StatusCreated,
+			body:         `[{"correlation_id": "test1", "original_url": "https://ya.ru" }, {"correlation_id": "test2", "original_url": "https://google.com" }]`,
+			isPositive:   true},
+		{name: "Empty array", method: http.MethodPost, expectedCode: http.StatusCreated, body: "[]", isPositive: true},
+		{name: "Object instead of array", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: "{}", isPositive: false},
+		{name: "Wrong JSON syntax",
+			method:       http.MethodPost,
+			expectedCode: http.StatusBadRequest,
+			body:         `[{"correlation_id": test1, "original_url": "https://ya.ru" }]`,
+			isPositive:   false},
+		{name: "Empty original URL", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: `[{"correlation_id": test1, "original_url": "" }]`, isPositive: false},
+		{name: "Empty body", method: http.MethodPost, expectedCode: http.StatusBadRequest, body: "", isPositive: false},
+	}
+	cfg := config.GetConfig()
+	s := mocks.NewURLStore()
+	srv := service.NewURLService(s, &cfg)
+	handler := NewURLHandler(srv)
+	httpSrv := httptest.NewServer(handler.Router)
+
+	defer httpSrv.Close()
+
+	for _, tc := range testCases {
+		t.Run(tc.method, func(t *testing.T) {
+			req := resty.New().R()
+			req.Method = tc.method
+			req.Header.Set("Content-Type", "application/json")
+			req.URL = httpSrv.URL + "/api/shorten/batch"
+			resp, err := req.SetBody(tc.body).Send()
+			assert.NoError(t, err, "error making HTTP request")
+			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Response code didn't match expected")
+			if tc.isPositive {
+				var readDTO []models.BatchShortURLReadDTO
+				err := json.Unmarshal(resp.Body(), &readDTO)
+				assert.NoError(t, err, "error unmarshal response body")
+				for _, dto := range readDTO {
+					assert.Len(t, dto.ShortURL, len(cfg.BaseURL)+shortedLenWithSlash, "Wrong body")
+				}
+			}
+		})
+	}
+}
+
 func TestURLHandler_getURLHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()

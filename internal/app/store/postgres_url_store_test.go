@@ -6,6 +6,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/shekshuev/shortener/internal/app/config"
+	"github.com/shekshuev/shortener/internal/app/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,6 +42,58 @@ func TestURLStore_SetURL(t *testing.T) {
 				assert.Nil(t, err, "Error is not nil")
 			}
 
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("Not all expectations were met: %v", err)
+			}
+		})
+	}
+}
+
+func TestURLStore_SetBatchURL(t *testing.T) {
+	testCases := []struct {
+		name      string
+		createDTO []models.BatchShortURLCreateDTO
+		hasError  bool
+	}{
+		{name: "Not empty list with correct values", createDTO: []models.BatchShortURLCreateDTO{
+			{CorrelationID: "test1", OriginalURL: "https://ya.ru", ShortURL: "test1"},
+			{CorrelationID: "test2", OriginalURL: "https://google.com", ShortURL: "test2"},
+		}, hasError: false},
+		{name: "Empty list", createDTO: []models.BatchShortURLCreateDTO{}, hasError: false},
+		{name: "Not empty list with empty short url", createDTO: []models.BatchShortURLCreateDTO{
+			{CorrelationID: "test1", OriginalURL: "https://ya.ru", ShortURL: ""},
+			{CorrelationID: "test2", OriginalURL: "https://google.com", ShortURL: "test2"},
+		}, hasError: true},
+		{name: "Not empty list with empty original url", createDTO: []models.BatchShortURLCreateDTO{
+			{CorrelationID: "test1", OriginalURL: "https://ya.ru", ShortURL: "test1"},
+			{CorrelationID: "test2", OriginalURL: "", ShortURL: "test2"},
+		}, hasError: true},
+		{name: "Nil list", createDTO: nil, hasError: true},
+	}
+	cfg := config.GetConfig()
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	if err != nil {
+		t.Fatalf("Error creating db mock: %v", err)
+	}
+	defer db.Close()
+	s := &PostgresURLStore{cfg: &cfg, db: db}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mock.ExpectBegin()
+			if !tc.hasError {
+				for _, dto := range tc.createDTO {
+					mock.ExpectExec(`(?i)insert into urls \(original_url, shorted_url\) values \(\$1, \$2\) on conflict \(original_url\) do update set shorted_url = excluded.shorted_url, updated_at = now\(\);`).
+						WithArgs(dto.OriginalURL, dto.ShortURL).
+						WillReturnResult(sqlmock.NewResult(1, 1))
+				}
+				mock.ExpectCommit()
+			}
+			err := s.SetBatchURL(tc.createDTO)
+			if tc.hasError {
+				assert.NotNil(t, err, "Error is nil")
+			} else {
+				assert.Nil(t, err, "Error is not nil")
+			}
 			if err := mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("Not all expectations were met: %v", err)
 			}

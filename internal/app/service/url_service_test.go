@@ -7,6 +7,7 @@ import (
 
 	"github.com/shekshuev/shortener/internal/app/config"
 	"github.com/shekshuev/shortener/internal/app/mocks"
+	"github.com/shekshuev/shortener/internal/app/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,6 +40,43 @@ func TestURLService_CreateShortURL(t *testing.T) {
 			} else {
 				assert.Nil(t, err, "Error is not nil")
 				assert.Len(t, shortURL, len(fmt.Sprintf("%s/%s", cfg.BaseURL, shorted)))
+			}
+		})
+	}
+}
+
+func TestURLService_BatchCreateShortURL(t *testing.T) {
+	shorted := "12345678"
+	testCases := []struct {
+		name      string
+		createDTO []models.BatchShortURLCreateDTO
+		hasError  bool
+	}{
+		{name: "Not empty list with correct values", createDTO: []models.BatchShortURLCreateDTO{
+			{CorrelationID: "test1", OriginalURL: "https://ya.ru"},
+			{CorrelationID: "test2", OriginalURL: "https://google.com"},
+		}, hasError: false},
+		{name: "Empty list", createDTO: []models.BatchShortURLCreateDTO{}, hasError: false},
+		{name: "Not empty list with empty original url", createDTO: []models.BatchShortURLCreateDTO{
+			{CorrelationID: "test1", OriginalURL: "https://ya.ru"},
+			{CorrelationID: "test2", OriginalURL: ""},
+		}, hasError: true},
+		{name: "Nil list", createDTO: nil, hasError: false},
+	}
+	cfg := config.GetConfig()
+	s := mocks.NewURLStore()
+	service := NewURLService(s, &cfg)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			readDTO, err := service.BatchCreateShortURL(tc.createDTO)
+			if tc.hasError {
+				assert.NotNil(t, err, "Error is nil")
+			} else {
+				assert.Nil(t, err, "Error is not nil")
+
+			}
+			for _, dto := range readDTO {
+				assert.Len(t, dto.ShortURL, len(fmt.Sprintf("%s/%s", cfg.BaseURL, shorted)))
 			}
 		})
 	}
