@@ -40,10 +40,15 @@ func (h *URLHandler) createURLHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain")
 	shortURL, err := h.service.CreateShortURL(string(body))
-	if err != nil {
+	switch {
+	case errors.Is(err, store.ErrAlreadyExists):
+		w.WriteHeader(http.StatusConflict)
+	case err != nil:
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	default:
+		w.WriteHeader(http.StatusCreated)
 	}
-	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(shortURL))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
