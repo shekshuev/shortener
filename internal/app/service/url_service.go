@@ -52,7 +52,7 @@ func (s *URLService) BatchCreateShortURL(createDTO []models.BatchShortURLCreateD
 
 	err := s.store.SetBatchURL(createDTO)
 	if err != nil {
-		return nil, ErrFailedToShorten
+		return nil, err
 	}
 	readDTO := make([]models.BatchShortURLReadDTO, 0, len(createDTO))
 	for _, dto := range createDTO {

@@ -68,11 +68,16 @@ func (s *PostgresURLStore) SetURL(key, value string) error {
 	log := logger.NewLogger()
 	query := `
 		insert into urls (original_url, shorted_url) values ($1, $2)
-		on conflict (original_url) do update set shorted_url = excluded.shorted_url, updated_at = now();
+		on conflict (original_url) do update set shorted_url = excluded.shorted_url, updated_at = now() 
+		returning (created_at = updated_at) as is_new;
 	`
-	_, err := s.db.Exec(query, value, key)
+	var isNew bool
+	err := s.db.QueryRow(query, value, key).Scan(&isNew)
 	if err != nil {
 		log.Log.Error("Error upserting record", zap.Error(err))
+	}
+	if !isNew {
+		return ErrAlreadyExists
 	}
 	return nil
 }
@@ -85,7 +90,8 @@ func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO
 	}
 	query := `
 		insert into urls (original_url, shorted_url) values ($1, $2)
-		on conflict (original_url) do update set shorted_url = excluded.shorted_url, updated_at = now();
+		on conflict (original_url) do update set shorted_url = excluded.shorted_url, updated_at = now()
+		returning (created_at = updated_at) as is_new;
 	`
 	for _, dto := range createDTO {
 		if len(dto.ShortURL) == 0 {
@@ -94,11 +100,15 @@ func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO
 		if len(dto.OriginalURL) == 0 {
 			return ErrEmptyValue
 		}
-		_, err := s.db.Exec(query, dto.OriginalURL, dto.ShortURL)
+		var isNew bool
+		err := s.db.QueryRow(query, dto.OriginalURL, dto.ShortURL).Scan(&isNew)
 		if err != nil {
 			log.Log.Error("Error upserting record", zap.Error(err))
 			tx.Rollback()
-			return err
+		}
+		if !isNew {
+			tx.Rollback()
+			return ErrAlreadyExists
 		}
 	}
 	return tx.Commit()

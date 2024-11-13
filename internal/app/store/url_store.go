@@ -17,6 +17,7 @@ type DatabaseChecker interface {
 	CheckDBConnection() error
 }
 
+var ErrAlreadyExists = fmt.Errorf("url already exists")
 var ErrEmptyKey = fmt.Errorf("key cannot be empty")
 var ErrEmptyValue = fmt.Errorf("value cannot be empty")
 var ErrNotFound = fmt.Errorf("not found")

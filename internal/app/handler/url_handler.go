@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"path"
@@ -10,6 +11,7 @@ import (
 	"github.com/shekshuev/shortener/internal/app/middleware"
 	"github.com/shekshuev/shortener/internal/app/models"
 	"github.com/shekshuev/shortener/internal/app/service"
+	"github.com/shekshuev/shortener/internal/app/store"
 )
 
 type URLHandler struct {
@@ -62,7 +64,11 @@ func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json")
 	shortURL, err := h.service.CreateShortURL(createDTO.URL)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		if errors.Is(err, store.ErrAlreadyExists) {
+			http.Error(w, err.Error(), http.StatusConflict)
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
 	}
 	w.WriteHeader(http.StatusCreated)
 	readDTO := models.ShortURLReadDTO{Result: shortURL}
@@ -109,7 +115,11 @@ func (h *URLHandler) batchCreateURLHandlerJSON(w http.ResponseWriter, r *http.Re
 	w.Header().Set("Content-Type", "application/json")
 	readDTO, err := h.service.BatchCreateShortURL(createDTO)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		if errors.Is(err, store.ErrAlreadyExists) {
+			http.Error(w, err.Error(), http.StatusConflict)
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
 	}
 	w.WriteHeader(http.StatusCreated)
 	resp, err := json.Marshal(readDTO)
