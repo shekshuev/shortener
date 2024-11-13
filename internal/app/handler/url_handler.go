@@ -63,14 +63,17 @@ func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request
 	}
 	w.Header().Set("Content-Type", "application/json")
 	shortURL, err := h.service.CreateShortURL(createDTO.URL)
-	if err != nil {
-		if errors.Is(err, store.ErrAlreadyExists) {
-			http.Error(w, err.Error(), http.StatusConflict)
-		} else {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
+
+	switch {
+	case errors.Is(err, store.ErrAlreadyExists):
+		w.WriteHeader(http.StatusConflict)
+	case err != nil:
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	default:
+		w.WriteHeader(http.StatusCreated)
 	}
-	w.WriteHeader(http.StatusCreated)
+
 	readDTO := models.ShortURLReadDTO{Result: shortURL}
 	resp, err := json.Marshal(readDTO)
 	if err != nil {
@@ -114,14 +117,16 @@ func (h *URLHandler) batchCreateURLHandlerJSON(w http.ResponseWriter, r *http.Re
 	}
 	w.Header().Set("Content-Type", "application/json")
 	readDTO, err := h.service.BatchCreateShortURL(createDTO)
-	if err != nil {
-		if errors.Is(err, store.ErrAlreadyExists) {
-			http.Error(w, err.Error(), http.StatusConflict)
-		} else {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
+	switch {
+	case errors.Is(err, store.ErrAlreadyExists):
+		w.WriteHeader(http.StatusConflict)
+	case err != nil:
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	default:
+		w.WriteHeader(http.StatusCreated)
 	}
-	w.WriteHeader(http.StatusCreated)
+
 	resp, err := json.Marshal(readDTO)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/shekshuev/shortener/internal/app/config"
@@ -36,6 +37,9 @@ func (s *URLService) CreateShortURL(longURL string) (string, error) {
 	}
 	err = s.store.SetURL(shorted, longURL)
 	if err != nil {
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return shorted, err
+		}
 		return "", err
 	}
 	return fmt.Sprintf("%s/%s", s.cfg.BaseURL, shorted), nil
@@ -50,10 +54,6 @@ func (s *URLService) BatchCreateShortURL(createDTO []models.BatchShortURLCreateD
 		createDTO[i].ShortURL = shorted
 	}
 
-	err := s.store.SetBatchURL(createDTO)
-	if err != nil {
-		return nil, err
-	}
 	readDTO := make([]models.BatchShortURLReadDTO, 0, len(createDTO))
 	for _, dto := range createDTO {
 		readDTO = append(readDTO, models.BatchShortURLReadDTO{
@@ -61,6 +61,15 @@ func (s *URLService) BatchCreateShortURL(createDTO []models.BatchShortURLCreateD
 			ShortURL:      fmt.Sprintf("%s/%s", s.cfg.BaseURL, dto.ShortURL),
 		})
 	}
+
+	err := s.store.SetBatchURL(createDTO)
+	if err != nil {
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return readDTO, err
+		}
+		return nil, err
+	}
+
 	return readDTO, nil
 }
 
