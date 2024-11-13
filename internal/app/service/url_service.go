@@ -35,10 +35,10 @@ func (s *URLService) CreateShortURL(longURL string) (string, error) {
 	if err != nil {
 		return "", ErrFailedToShorten
 	}
-	err = s.store.SetURL(shorted, longURL)
+	shortURL, err := s.store.SetURL(shorted, longURL)
 	if err != nil {
 		if errors.Is(err, store.ErrAlreadyExists) {
-			return shorted, err
+			return fmt.Sprintf("%s/%s", s.cfg.BaseURL, shortURL), err
 		}
 		return "", err
 	}
@@ -54,6 +54,7 @@ func (s *URLService) BatchCreateShortURL(createDTO []models.BatchShortURLCreateD
 		createDTO[i].ShortURL = shorted
 	}
 
+	err := s.store.SetBatchURL(createDTO)
 	readDTO := make([]models.BatchShortURLReadDTO, 0, len(createDTO))
 	for _, dto := range createDTO {
 		readDTO = append(readDTO, models.BatchShortURLReadDTO{
@@ -61,8 +62,6 @@ func (s *URLService) BatchCreateShortURL(createDTO []models.BatchShortURLCreateD
 			ShortURL:      fmt.Sprintf("%s/%s", s.cfg.BaseURL, dto.ShortURL),
 		})
 	}
-
-	err := s.store.SetBatchURL(createDTO)
 	if err != nil {
 		if errors.Is(err, store.ErrAlreadyExists) {
 			return readDTO, err

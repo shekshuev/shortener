@@ -95,7 +95,7 @@ func TestURLService_GetLongURL(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	service := NewURLService(s, &cfg)
-	err := s.SetURL(shorted, longURL)
+	_, err := s.SetURL(shorted, longURL)
 	assert.Nil(t, err, "Set url store error is not nil")
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

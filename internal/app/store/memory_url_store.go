@@ -26,20 +26,20 @@ func NewMemoryURLStore(cfg *config.Config) *MemoryURLStore {
 	return store
 }
 
-func (s *MemoryURLStore) SetURL(key, value string) error {
+func (s *MemoryURLStore) SetURL(key, value string) (string, error) {
 	s.mx.Lock()
 	defer s.mx.Unlock()
 	if s.urls == nil {
-		return ErrNotInitialized
+		return "", ErrNotInitialized
 	}
 	if len(key) == 0 {
-		return ErrEmptyKey
+		return "", ErrEmptyKey
 	}
 	if len(value) == 0 {
-		return ErrEmptyValue
+		return "", ErrEmptyValue
 	}
 	s.urls[key] = value
-	return nil
+	return value, nil
 }
 
 func (s *MemoryURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO) error {

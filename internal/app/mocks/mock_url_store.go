@@ -19,9 +19,9 @@ func NewURLStore() *MockStore {
 	return store
 }
 
-func (m *MockStore) SetURL(key, value string) error {
+func (m *MockStore) SetURL(key, value string) (string, error) {
 	m.urls[key] = value
-	return nil
+	return value, nil
 }
 
 func (m *MockStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO) error {

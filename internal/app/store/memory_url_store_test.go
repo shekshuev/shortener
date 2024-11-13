@@ -22,7 +22,7 @@ func TestMemoryURLStore_SetURL(t *testing.T) {
 	s := &MemoryURLStore{urls: make(map[string]string), cfg: &cfg}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := s.SetURL(tc.key, tc.value)
+			_, err := s.SetURL(tc.key, tc.value)
 			if len(tc.key) == 0 || len(tc.value) == 0 {
 				assert.NotNil(t, err, "Error is nil")
 			} else {
@@ -81,7 +81,7 @@ func TestMemoryURLStore_GetURL(t *testing.T) {
 	s := &MemoryURLStore{urls: make(map[string]string), cfg: &cfg}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := s.SetURL(tc.key, tc.value)
+			_, err := s.SetURL(tc.key, tc.value)
 			assert.Nil(t, err, "Set error is not nil")
 			res, err := s.GetURL(tc.getKey)
 			if tc.key == tc.getKey {
