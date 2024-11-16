@@ -14,13 +14,19 @@ import (
 	"github.com/shekshuev/shortener/internal/app/service"
 	"github.com/shekshuev/shortener/internal/app/store"
 
+	_ "github.com/joho/godotenv/autoload"
 	"go.uber.org/zap"
 )
 
 func main() {
 	l := logger.NewLogger()
 	cfg := config.GetConfig()
-	urlStore := store.NewURLStore(&cfg)
+	var urlStore store.URLStore = nil
+	if cfg.DatabaseDSN == cfg.DefaultDatabaseDSN {
+		urlStore = store.NewMemoryURLStore(&cfg)
+	} else {
+		urlStore = store.NewPostgresURLStore(&cfg)
+	}
 	urlService := service.NewURLService(urlStore, &cfg)
 	urlHandler := handler.NewURLHandler(urlService)
 	server := &http.Server{
@@ -40,10 +46,10 @@ func main() {
 	l.Log.Info("Shutting down server...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := urlStore.CreateSnapshot(); err != nil {
-		l.Log.Error("Error saving snapshot during shutdown", zap.Error(err))
+	if err := urlStore.Close(); err != nil {
+		l.Log.Error("Error closing store", zap.Error(err))
 	} else {
-		l.Log.Info("Snapshot saved successfully")
+		l.Log.Info("Store closed")
 	}
 	if err := server.Shutdown(ctx); err != nil {
 		l.Log.Error("Server forced to shutdown", zap.Error(err))

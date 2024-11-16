@@ -9,7 +9,7 @@ import (
 	"github.com/shekshuev/shortener/internal/app/models"
 )
 
-func (s *URLStore) CreateSnapshot() error {
+func (s *MemoryURLStore) CreateSnapshot() error {
 	file, err := os.OpenFile(s.cfg.FileStoragePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -36,7 +36,7 @@ func (s *URLStore) CreateSnapshot() error {
 	return nil
 }
 
-func (s *URLStore) LoadSnapshot() error {
+func (s *MemoryURLStore) LoadSnapshot() error {
 	if _, err := os.Stat(s.cfg.FileStoragePath); os.IsNotExist(err) {
 		return nil
 	}
