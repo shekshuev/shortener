@@ -38,6 +38,7 @@ func NewPostgresURLStore(cfg *config.Config) *PostgresURLStore {
 		query = `
             create table urls (
                 id serial,
+				user_id string not null,
 				original_url text not null,
                 shorted_url text not null,
 				created_at timestamp not null default now(),

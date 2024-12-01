@@ -23,6 +23,7 @@ func NewURLHandler(service service.Service) *URLHandler {
 	router := chi.NewRouter()
 	router.Use(middleware.RequestLogger)
 	router.Use(middleware.GzipCompressor)
+	router.Use(middleware.RequestAuth)
 	h := &URLHandler{service: service, Router: router}
 	router.Post("/", h.createURLHandler)
 	router.Post("/api/shorten", h.createURLHandlerJSON)
