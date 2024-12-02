@@ -12,13 +12,16 @@ import (
 
 func TestPostgresURLStore_SetURL(t *testing.T) {
 	testCases := []struct {
-		key   string
-		value string
-		name  string
+		key      string
+		value    string
+		name     string
+		userID   string
+		hasError bool
 	}{
-		{name: "Normal key and value", key: "test", value: "test"},
-		{name: "Empty key", key: "", value: "test"},
-		{name: "Empty value", key: "test", value: ""},
+		{name: "Normal key and value", key: "test", value: "test", userID: "1", hasError: false},
+		{name: "Empty key", key: "", value: "test", userID: "1", hasError: true},
+		{name: "Empty value", key: "test", value: "", userID: "1", hasError: true},
+		{name: "Empty userID", key: "test", value: "test", userID: "", hasError: true},
 	}
 	cfg := config.GetConfig()
 	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
@@ -29,13 +32,13 @@ func TestPostgresURLStore_SetURL(t *testing.T) {
 	s := &PostgresURLStore{cfg: &cfg, db: db}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if len(tc.key) > 0 && len(tc.value) > 0 {
-				mock.ExpectQuery(`(?i)insert into urls \(original_url, shorted_url\) values \(\$1, \$2\) on conflict \(original_url\) do update set updated_at = now\(\) returning \(created_at = updated_at\) as is_new, shorted_url;`).
-					WithArgs(tc.value, tc.key).
+			if !tc.hasError {
+				mock.ExpectQuery(`(?i)insert into urls \(original_url, shorted_url, user_id\) values \(\$1, \$2, \$3\) on conflict \(original_url\) do update set updated_at = now\(\) returning \(created_at = updated_at\) as is_new, shorted_url;`).
+					WithArgs(tc.value, tc.key, tc.userID).
 					WillReturnRows(sqlmock.NewRows([]string{"is_new", "short_url"}).AddRow(true, "test"))
 			}
-			_, err := s.SetURL(tc.key, tc.value)
-			if len(tc.key) == 0 || len(tc.value) == 0 {
+			_, err := s.SetURL(tc.key, tc.value, tc.userID)
+			if tc.hasError {
 				assert.NotNil(t, err, "Error is nil")
 			} else {
 				assert.Nil(t, err, "Error is not nil")
@@ -52,22 +55,24 @@ func TestPostgresURLStore_SetBatchURL(t *testing.T) {
 	testCases := []struct {
 		name      string
 		createDTO []models.BatchShortURLCreateDTO
+		userID    string
 		hasError  bool
 	}{
 		{name: "Not empty list with correct values", createDTO: []models.BatchShortURLCreateDTO{
 			{CorrelationID: "test1", OriginalURL: "https://ya.ru", ShortURL: "test1"},
 			{CorrelationID: "test2", OriginalURL: "https://google.com", ShortURL: "test2"},
-		}, hasError: false},
-		{name: "Empty list", createDTO: []models.BatchShortURLCreateDTO{}, hasError: false},
+		}, userID: "1", hasError: false},
+		{name: "Empty list", createDTO: []models.BatchShortURLCreateDTO{}, userID: "1", hasError: false},
 		{name: "Not empty list with empty short url", createDTO: []models.BatchShortURLCreateDTO{
 			{CorrelationID: "test1", OriginalURL: "https://ya.ru", ShortURL: ""},
 			{CorrelationID: "test2", OriginalURL: "https://google.com", ShortURL: "test2"},
-		}, hasError: true},
+		}, userID: "1", hasError: true},
 		{name: "Not empty list with empty original url", createDTO: []models.BatchShortURLCreateDTO{
 			{CorrelationID: "test1", OriginalURL: "https://ya.ru", ShortURL: "test1"},
 			{CorrelationID: "test2", OriginalURL: "", ShortURL: "test2"},
-		}, hasError: true},
-		{name: "Nil list", createDTO: nil, hasError: true},
+		}, userID: "1", hasError: true},
+		{name: "Nil list", createDTO: nil, userID: "1", hasError: true},
+		{name: "Empty user id", createDTO: nil, userID: "", hasError: true},
 	}
 	cfg := config.GetConfig()
 	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
@@ -81,13 +86,13 @@ func TestPostgresURLStore_SetBatchURL(t *testing.T) {
 			mock.ExpectBegin()
 			if !tc.hasError {
 				for _, dto := range tc.createDTO {
-					mock.ExpectQuery(`(?i)insert into urls \(original_url, shorted_url\) values \(\$1, \$2\) on conflict \(original_url\) do update set updated_at = now\(\) returning \(created_at = updated_at\) as is_new, shorted_url;`).
-						WithArgs(dto.OriginalURL, dto.ShortURL).
+					mock.ExpectQuery(`(?i)insert into urls \(original_url, shorted_url, user_id\) values \(\$1, \$2, \$3\) on conflict \(original_url\) do update set updated_at = now\(\) returning \(created_at = updated_at\) as is_new, shorted_url;`).
+						WithArgs(dto.OriginalURL, dto.ShortURL, tc.userID).
 						WillReturnRows(sqlmock.NewRows([]string{"is_new", "short_url"}).AddRow(true, "test"))
 				}
 				mock.ExpectCommit()
 			}
-			err := s.SetBatchURL(tc.createDTO)
+			err := s.SetBatchURL(tc.createDTO, tc.userID)
 			if tc.hasError {
 				assert.NotNil(t, err, "Error is nil")
 			} else {
@@ -106,9 +111,10 @@ func TestPostgresURLStore_GetURL(t *testing.T) {
 		getKey string
 		value  string
 		name   string
+		userID string
 	}{
-		{name: "Get existing value", key: "test", getKey: "test", value: "test"},
-		{name: "Get not existing value", key: "test", getKey: "not exists", value: "test"},
+		{name: "Get existing value", key: "test", getKey: "test", value: "test", userID: "1"},
+		{name: "Get not existing value", key: "test", getKey: "not exists", value: "test", userID: "1"},
 	}
 	cfg := config.GetConfig()
 	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
@@ -119,10 +125,10 @@ func TestPostgresURLStore_GetURL(t *testing.T) {
 	s := &PostgresURLStore{cfg: &cfg, db: db}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mock.ExpectQuery(`(?i)insert into urls \(original_url, shorted_url\) values \(\$1, \$2\) on conflict \(original_url\) do update set updated_at = now\(\) returning \(created_at = updated_at\) as is_new, shorted_url;`).
-				WithArgs(tc.value, tc.key).
+			mock.ExpectQuery(`(?i)insert into urls \(original_url, shorted_url, user_id\) values \(\$1, \$2, \$3\) on conflict \(original_url\) do update set updated_at = now\(\) returning \(created_at = updated_at\) as is_new, shorted_url;`).
+				WithArgs(tc.value, tc.key, tc.userID).
 				WillReturnRows(sqlmock.NewRows([]string{"is_new", "short_url"}).AddRow(true, "test"))
-			_, err := s.SetURL(tc.key, tc.value)
+			_, err := s.SetURL(tc.key, tc.value, tc.userID)
 			assert.Nil(t, err, "Set error is not nil")
 			if tc.key == tc.getKey {
 				mock.ExpectQuery(`select original_url from urls where shorted_url = \$1`).

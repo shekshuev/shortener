@@ -38,7 +38,7 @@ func NewPostgresURLStore(cfg *config.Config) *PostgresURLStore {
 		query = `
             create table urls (
                 id serial,
-				user_id string not null,
+				user_id text not null,
 				original_url text not null,
                 shorted_url text not null,
 				created_at timestamp not null default now(),
@@ -59,16 +59,19 @@ func NewPostgresURLStore(cfg *config.Config) *PostgresURLStore {
 	return store
 }
 
-func (s *PostgresURLStore) SetURL(key, value string) (string, error) {
+func (s *PostgresURLStore) SetURL(key, value, userID string) (string, error) {
 	if len(key) == 0 {
 		return "", ErrEmptyKey
 	}
 	if len(value) == 0 {
 		return "", ErrEmptyValue
 	}
+	if len(userID) == 0 {
+		return "", ErrEmptyUserID
+	}
 	log := logger.NewLogger()
 	query := `
-		insert into urls (original_url, shorted_url) values ($1, $2)
+		insert into urls (original_url, shorted_url, user_id) values ($1, $2, $3)
 		on conflict (original_url) do update set updated_at = now() 
 		returning (created_at = updated_at) as is_new, shorted_url;
 	`
@@ -76,7 +79,7 @@ func (s *PostgresURLStore) SetURL(key, value string) (string, error) {
 		isNew      bool
 		shorterURL string
 	)
-	err := s.db.QueryRow(query, value, key).Scan(&isNew, &shorterURL)
+	err := s.db.QueryRow(query, value, key, userID).Scan(&isNew, &shorterURL)
 	if err != nil {
 		log.Log.Error("Error upserting record", zap.Error(err))
 	}
@@ -86,14 +89,14 @@ func (s *PostgresURLStore) SetURL(key, value string) (string, error) {
 	return shorterURL, nil
 }
 
-func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO) error {
+func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userID string) error {
 	log := logger.NewLogger()
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
 	query := `
-		insert into urls (original_url, shorted_url) values ($1, $2)
+		insert into urls (original_url, shorted_url, user_id) values ($1, $2, $3)
 		on conflict (original_url) do update set updated_at = now()
 		returning (created_at = updated_at) as is_new, shorted_url;
 	`
@@ -105,11 +108,14 @@ func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO
 		if len(createDTO[i].OriginalURL) == 0 {
 			return ErrEmptyValue
 		}
+		if len(userID) == 0 {
+			return ErrEmptyUserID
+		}
 		var (
 			isNew    bool
 			shortURL string
 		)
-		err := s.db.QueryRow(query, createDTO[i].OriginalURL, createDTO[i].ShortURL).Scan(&isNew, &shortURL)
+		err := s.db.QueryRow(query, createDTO[i].OriginalURL, createDTO[i].ShortURL, userID).Scan(&isNew, &shortURL)
 		if err != nil {
 			log.Log.Error("Error upserting record", zap.Error(err))
 			tx.Rollback()

@@ -1,10 +1,13 @@
 package jwt
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 )
+
+const CookieName = "token"
 
 type Claims struct {
 	jwt.RegisteredClaims
@@ -13,6 +16,14 @@ type Claims struct {
 
 const TOKEN_EXP = time.Hour * 3
 const SECRET_KEY = "supersecretkey"
+
+func GetAuthCookie(req *http.Request) (string, error) {
+	cookie, err := req.Cookie(CookieName)
+	if err != nil {
+		return "", err
+	}
+	return cookie.Value, nil
+}
 
 func BuildJWTString() (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
@@ -28,8 +39,8 @@ func BuildJWTString() (string, error) {
 	return tokenString, nil
 }
 
-func fromString(tokenString string) Claims {
-	claims := Claims{}
+func fromString(tokenString string) *Claims {
+	claims := &Claims{}
 	jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(SECRET_KEY), nil
 	})
