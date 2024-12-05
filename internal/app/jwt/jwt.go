@@ -54,5 +54,8 @@ func GetUserID(tokenString string) string {
 
 func IsTokenExpired(tokenString string) bool {
 	claims := fromString(tokenString)
+	if claims.ExpiresAt == nil {
+		return false
+	}
 	return claims.ExpiresAt.Before(time.Now())
 }
