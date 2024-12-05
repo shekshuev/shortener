@@ -77,14 +77,16 @@ func TestMemoryURLStore_SetBatchURL(t *testing.T) {
 
 func TestMemoryURLStore_GetURL(t *testing.T) {
 	testCases := []struct {
-		key    string
-		getKey string
-		value  string
-		name   string
-		userID string
+		key       string
+		getKey    string
+		value     string
+		name      string
+		userID    string
+		getUserID string
 	}{
-		{name: "Get existing value", key: "test", getKey: "test", value: "test", userID: "1"},
-		{name: "Get not existing value", key: "test", getKey: "not exists", value: "test", userID: "1"},
+		{name: "Get existing value", key: "test", getKey: "test", value: "test", userID: "1", getUserID: "1"},
+		{name: "Get not existing value", key: "test", getKey: "not exists", value: "test", userID: "1", getUserID: "1"},
+		{name: "Get existing value with wrong userID", key: "test", getKey: "test", value: "test", userID: "1", getUserID: "2"},
 	}
 	cfg := config.GetConfig()
 	s := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
@@ -92,8 +94,8 @@ func TestMemoryURLStore_GetURL(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := s.SetURL(tc.key, tc.value, tc.userID)
 			assert.Nil(t, err, "Set error is not nil")
-			res, err := s.GetURL(tc.getKey)
-			if tc.key == tc.getKey {
+			res, err := s.GetURL(tc.getKey, tc.getUserID)
+			if tc.key == tc.getKey && tc.userID == tc.getUserID {
 				assert.Equal(t, res, tc.value, "Get result is not equal to test value")
 				assert.Nil(t, err, "Get error is not nil")
 			} else {

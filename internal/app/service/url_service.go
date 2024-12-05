@@ -13,7 +13,7 @@ import (
 type Service interface {
 	CreateShortURL(longURL, userID string) (string, error)
 	BatchCreateShortURL(createDTO []models.BatchShortURLCreateDTO, userID string) ([]models.BatchShortURLReadDTO, error)
-	GetLongURL(shortURL string) (string, error)
+	GetLongURL(shortURL, userID string) (string, error)
 	CheckDBConnection() error
 }
 
@@ -72,8 +72,8 @@ func (s *URLService) BatchCreateShortURL(createDTO []models.BatchShortURLCreateD
 	return readDTO, nil
 }
 
-func (s *URLService) GetLongURL(shortURL string) (string, error) {
-	longURL, err := s.store.GetURL(shortURL)
+func (s *URLService) GetLongURL(shortURL, userID string) (string, error) {
+	longURL, err := s.store.GetURL(shortURL, userID)
 	if err != nil {
 		return "", err
 	}

@@ -107,14 +107,16 @@ func TestPostgresURLStore_SetBatchURL(t *testing.T) {
 
 func TestPostgresURLStore_GetURL(t *testing.T) {
 	testCases := []struct {
-		key    string
-		getKey string
-		value  string
-		name   string
-		userID string
+		key       string
+		getKey    string
+		value     string
+		name      string
+		userID    string
+		getUserID string
 	}{
-		{name: "Get existing value", key: "test", getKey: "test", value: "test", userID: "1"},
-		{name: "Get not existing value", key: "test", getKey: "not exists", value: "test", userID: "1"},
+		{name: "Get existing value", key: "test", getKey: "test", value: "test", userID: "1", getUserID: "1"},
+		{name: "Get not existing value", key: "test", getKey: "not exists", value: "test", userID: "1", getUserID: "1"},
+		{name: "Get existing value with wrong userID", key: "test", getKey: "test", value: "test", userID: "1", getUserID: "2"},
 	}
 	cfg := config.GetConfig()
 	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
@@ -130,17 +132,17 @@ func TestPostgresURLStore_GetURL(t *testing.T) {
 				WillReturnRows(sqlmock.NewRows([]string{"is_new", "short_url"}).AddRow(true, "test"))
 			_, err := s.SetURL(tc.key, tc.value, tc.userID)
 			assert.Nil(t, err, "Set error is not nil")
-			if tc.key == tc.getKey {
-				mock.ExpectQuery(`select original_url from urls where shorted_url = \$1`).
-					WithArgs(tc.getKey).
+			if tc.key == tc.getKey && tc.userID == tc.getUserID {
+				mock.ExpectQuery(`select original_url from urls where shorted_url = \$1 and user_id = \$2`).
+					WithArgs(tc.getKey, tc.getUserID).
 					WillReturnRows(sqlmock.NewRows([]string{"original_url"}).AddRow(tc.value))
 			} else {
-				mock.ExpectQuery(`select original_url from urls where shorted_url = \$1`).
-					WithArgs(tc.getKey).
+				mock.ExpectQuery(`select original_url from urls where shorted_url = \$1 and user_id = \$2`).
+					WithArgs(tc.getKey, tc.getUserID).
 					WillReturnError(sql.ErrNoRows)
 			}
-			res, err := s.GetURL(tc.getKey)
-			if tc.key == tc.getKey {
+			res, err := s.GetURL(tc.getKey, tc.getUserID)
+			if tc.key == tc.getKey && tc.userID == tc.getUserID {
 				assert.Equal(t, res, tc.value, "Get result is not equal to test value")
 				assert.Nil(t, err, "Get error is not nil")
 			} else {

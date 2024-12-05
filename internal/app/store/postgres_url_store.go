@@ -131,12 +131,12 @@ func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO
 	return tx.Commit()
 }
 
-func (s *PostgresURLStore) GetURL(key string) (string, error) {
+func (s *PostgresURLStore) GetURL(key, userID string) (string, error) {
 	query := `
-		select original_url from urls where shorted_url = $1
+		select original_url from urls where shorted_url = $1 and user_id = $2;
 	`
 	var value string
-	err := s.db.QueryRow(query, key).Scan(&value)
+	err := s.db.QueryRow(query, key, userID).Scan(&value)
 	if err == sql.ErrNoRows {
 		return "", ErrNotFound
 	}

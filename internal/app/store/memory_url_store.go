@@ -76,7 +76,7 @@ func (s *MemoryURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, 
 	return nil
 }
 
-func (s *MemoryURLStore) GetURL(key string) (string, error) {
+func (s *MemoryURLStore) GetURL(key, userID string) (string, error) {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
 	if s.urls == nil {
@@ -84,6 +84,9 @@ func (s *MemoryURLStore) GetURL(key string) (string, error) {
 	}
 	value, exists := s.urls[key]
 	if !exists {
+		return "", ErrNotFound
+	}
+	if value.UserID != userID {
 		return "", ErrNotFound
 	}
 	return value.URL, nil

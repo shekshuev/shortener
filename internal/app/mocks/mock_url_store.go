@@ -53,10 +53,13 @@ func (m *MockStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userI
 	return nil
 }
 
-func (m *MockStore) GetURL(key string) (string, error) {
+func (m *MockStore) GetURL(key, userID string) (string, error) {
 	value, exists := m.urls[key]
 	if !exists {
 		return "", ErrNotFound
+	}
+	if value.UserID != userID {
+		return "", store.ErrNotFound
 	}
 	return value.URL, nil
 }

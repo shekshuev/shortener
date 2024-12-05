@@ -104,7 +104,12 @@ func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request
 
 func (h *URLHandler) getURLHandler(w http.ResponseWriter, r *http.Request) {
 	urlPath := path.Base(r.URL.Path)
-	if longURL, err := h.service.GetLongURL(urlPath); err == nil {
+	cookie, err := jwt.GetAuthCookie(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	userID := jwt.GetUserID(cookie)
+	if longURL, err := h.service.GetLongURL(urlPath, userID); err == nil {
 		http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
