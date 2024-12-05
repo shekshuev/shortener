@@ -30,6 +30,7 @@ func NewURLHandler(service service.Service) *URLHandler {
 	router.Post("/api/shorten", h.createURLHandlerJSON)
 	router.Post("/api/shorten/batch", h.batchCreateURLHandlerJSON)
 	router.Get("/{shorted}", h.getURLHandler)
+	router.Get("/api/user/urls", h.getUserURLsHandler)
 	router.Get("/ping", h.pingURLHandler)
 	return h
 }
@@ -113,6 +114,27 @@ func (h *URLHandler) getURLHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
+	}
+
+}
+
+func (h *URLHandler) getUserURLsHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := jwt.GetAuthCookie(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	userID := jwt.GetUserID(cookie)
+	if readDTO, err := h.service.GetUserURLs(userID); err == nil {
+		resp, err := json.Marshal(readDTO)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		_, err = w.Write(resp)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+	} else {
+		w.WriteHeader(http.StatusNoContent)
 	}
 
 }

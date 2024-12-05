@@ -122,6 +122,37 @@ func TestURLService_GetLongURL(t *testing.T) {
 	}
 }
 
+func TestURLService_GetUserURLs(t *testing.T) {
+	longURL := "https://example.com"
+	shorted := "12345678"
+	userID := "1"
+	testCases := []struct {
+		shorted   string
+		name      string
+		getUserID string
+		hasError  bool
+	}{
+		{name: "Get with correct userID", shorted: shorted, getUserID: userID, hasError: false},
+		{name: "Get with wrong userID", shorted: "non-existing", getUserID: "2", hasError: true},
+	}
+	cfg := config.GetConfig()
+	s := mocks.NewURLStore()
+	service := NewURLService(s, &cfg)
+	_, err := s.SetURL(shorted, longURL, userID)
+	assert.Nil(t, err, "Set url store error is not nil")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			readDTO, err := service.GetUserURLs(tc.getUserID)
+			if tc.shorted == "non-existing" {
+				assert.NotNil(t, err, "Error is nil")
+			} else {
+				assert.Nil(t, err, "Error is not nil")
+				assert.Len(t, readDTO, 1)
+			}
+		})
+	}
+}
+
 func TestURLService_CheckDBConnection(t *testing.T) {
 	testCases := []struct {
 		name     string

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 )
 
 const CookieName = "token"
@@ -30,7 +31,7 @@ func BuildJWTString() (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TOKEN_EXP)),
 		},
-		UserID: "1",
+		UserID: uuid.New().String(),
 	})
 	tokenString, err := token.SignedString([]byte(SECRET_KEY))
 	if err != nil {
