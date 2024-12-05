@@ -10,7 +10,7 @@ import (
 func RequestAuth(h http.Handler) http.Handler {
 	log := logger.NewLogger()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := jwt.GetAuthCookie(r)
+		jwtToken, err := jwt.GetAuthCookie(r)
 		if err != nil {
 			value, err := jwt.BuildJWTString()
 			if err != nil {
@@ -18,15 +18,17 @@ func RequestAuth(h http.Handler) http.Handler {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			http.SetCookie(w, &http.Cookie{
+			cookie := &http.Cookie{
 				Name:     jwt.CookieName,
 				Value:    value,
 				Path:     "/",
 				HttpOnly: true,
-			})
-			cookie = value
+			}
+			r.AddCookie(cookie)
+			http.SetCookie(w, cookie)
+			jwtToken = value
 		}
-		if jwt.IsTokenExpired(cookie) {
+		if jwt.IsTokenExpired(jwtToken) {
 			http.SetCookie(w, &http.Cookie{
 				Name:     jwt.CookieName,
 				Value:    "",
@@ -34,6 +36,8 @@ func RequestAuth(h http.Handler) http.Handler {
 				MaxAge:   -1,
 				HttpOnly: true,
 			})
+			w.WriteHeader(http.StatusBadGateway)
+			return
 		}
 		h.ServeHTTP(w, r)
 	})
