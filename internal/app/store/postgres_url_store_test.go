@@ -127,11 +127,6 @@ func TestPostgresURLStore_GetURL(t *testing.T) {
 	s := &PostgresURLStore{cfg: &cfg, db: db}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mock.ExpectQuery(`(?i)insert into urls \(original_url, shorted_url, user_id\) values \(\$1, \$2, \$3\) on conflict \(original_url\) do update set updated_at = now\(\) returning \(created_at = updated_at\) as is_new, shorted_url;`).
-				WithArgs(tc.value, tc.key, tc.userID).
-				WillReturnRows(sqlmock.NewRows([]string{"is_new", "short_url"}).AddRow(true, "test"))
-			_, err := s.SetURL(tc.key, tc.value, tc.userID)
-			assert.Nil(t, err, "Set error is not nil")
 			if tc.key == tc.getKey && tc.userID == tc.getUserID {
 				mock.ExpectQuery(`select original_url from urls where shorted_url = \$1 and user_id = \$2`).
 					WithArgs(tc.getKey, tc.getUserID).
@@ -150,6 +145,51 @@ func TestPostgresURLStore_GetURL(t *testing.T) {
 				assert.NotNil(t, err, "Get error is nil")
 			}
 
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("Not all expectations were met: %v", err)
+			}
+		})
+	}
+}
+
+func TestPostgresURLStore_GetUserURLs(t *testing.T) {
+	userID := "1"
+	testCases := []struct {
+		name        string
+		getUserID   string
+		hasError    bool
+		originalURL string
+		shortURL    string
+	}{
+		{name: "Get with correct userID", getUserID: userID, hasError: false, originalURL: "https://ya.ru", shortURL: "test1"},
+		{name: "Get with wrong userID", getUserID: "2", hasError: true, originalURL: "https://ya.ru", shortURL: "test1"},
+	}
+	cfg := config.GetConfig()
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	if err != nil {
+		t.Fatalf("Error create db mock: %v", err)
+	}
+	defer db.Close()
+	s := &PostgresURLStore{cfg: &cfg, db: db}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if !tc.hasError {
+				mock.ExpectQuery(`select original_url, short_url from urls where user_id = \$1`).
+					WithArgs(tc.getUserID).
+					WillReturnRows(sqlmock.NewRows([]string{"original_url", "short_url"}).AddRow(tc.originalURL, tc.shortURL))
+			} else {
+				mock.ExpectQuery(`select original_url, short_url from urls where user_id = \$1`).
+					WithArgs(tc.getUserID).
+					WillReturnError(sql.ErrNoRows)
+			}
+			res, err := s.GetUserURLs(tc.getUserID)
+			if !tc.hasError {
+				assert.Len(t, res, 1, "Get result length is not equal to test value")
+				assert.Nil(t, err, "Get error is not nil")
+			} else {
+				assert.Len(t, res, 0, "Get result is not nil")
+				assert.NotNil(t, err, "Get error is nil")
+			}
 			if err := mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("Not all expectations were met: %v", err)
 			}

@@ -92,6 +92,24 @@ func (s *MemoryURLStore) GetURL(key, userID string) (string, error) {
 	return value.URL, nil
 }
 
+func (s *MemoryURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
+	s.mx.RLock()
+	defer s.mx.RUnlock()
+	if s.urls == nil {
+		return nil, ErrNotInitialized
+	}
+	var readDTO []models.UserShortURLReadDTO
+	for key, value := range s.urls {
+		if value.UserID == userID {
+			readDTO = append(readDTO, models.UserShortURLReadDTO{ShortURL: key, OriginalURL: value.URL})
+		}
+	}
+	if len(readDTO) == 0 {
+		return nil, ErrNotFound
+	}
+	return readDTO, nil
+}
+
 func (s *MemoryURLStore) Close() error {
 	return s.CreateSnapshot()
 }

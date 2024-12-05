@@ -143,6 +143,29 @@ func (s *PostgresURLStore) GetURL(key, userID string) (string, error) {
 	return value, nil
 }
 
+func (s *PostgresURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
+	query := `
+		select original_url, short_url from urls where user_id = $1;
+	`
+	var readDTO []models.UserShortURLReadDTO
+	rows, err := s.db.Query(query, userID)
+	if err == sql.ErrNoRows {
+		return nil, ErrNotFound
+	}
+	for rows.Next() {
+		var (
+			originalURL string
+			shortURL    string
+		)
+		err := rows.Scan(&originalURL, &shortURL)
+		if err != nil {
+			return nil, err
+		}
+		readDTO = append(readDTO, models.UserShortURLReadDTO{ShortURL: shortURL, OriginalURL: originalURL})
+	}
+	return readDTO, nil
+}
+
 func (s *PostgresURLStore) Close() error {
 	if s.db != nil {
 		return s.db.Close()

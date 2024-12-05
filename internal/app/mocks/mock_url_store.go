@@ -64,6 +64,19 @@ func (m *MockStore) GetURL(key, userID string) (string, error) {
 	return value.URL, nil
 }
 
+func (m *MockStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
+	var readDTO []models.UserShortURLReadDTO
+	for key, value := range m.urls {
+		if value.UserID == userID {
+			readDTO = append(readDTO, models.UserShortURLReadDTO{ShortURL: key, OriginalURL: value.URL})
+		}
+	}
+	if len(readDTO) == 0 {
+		return nil, ErrNotFound
+	}
+	return readDTO, nil
+}
+
 func (m *MockStore) CheckDBConnection() error {
 	args := m.Called()
 	return args.Error(0)

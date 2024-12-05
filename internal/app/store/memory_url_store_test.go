@@ -105,3 +105,33 @@ func TestMemoryURLStore_GetURL(t *testing.T) {
 		})
 	}
 }
+
+func TestMemoryURLStore_GetUserURLs(t *testing.T) {
+	userID := "1"
+	testCases := []struct {
+		name        string
+		getUserID   string
+		hasError    bool
+		originalURL string
+		shortURL    string
+	}{
+		{name: "Get with correct userID", getUserID: userID, hasError: false, originalURL: "https://ya.ru", shortURL: "test1"},
+		{name: "Get with wrong userID", getUserID: "2", hasError: true, originalURL: "https://ya.ru", shortURL: "test1"},
+	}
+	cfg := config.GetConfig()
+	s := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := s.SetURL(tc.shortURL, tc.originalURL, userID)
+			assert.Nil(t, err, "Set error is not nil")
+			res, err := s.GetUserURLs(tc.getUserID)
+			if !tc.hasError {
+				assert.Len(t, res, 1, "Get result length is not equal to test value")
+				assert.Nil(t, err, "Get error is not nil")
+			} else {
+				assert.Len(t, res, 0, "Get result is not nil")
+				assert.NotNil(t, err, "Get error is nil")
+			}
+		})
+	}
+}
