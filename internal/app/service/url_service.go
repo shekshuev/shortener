@@ -15,6 +15,7 @@ type Service interface {
 	BatchCreateShortURL(createDTO []models.BatchShortURLCreateDTO, userID string) ([]models.BatchShortURLReadDTO, error)
 	GetLongURL(shortURL, userID string) (string, error)
 	GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error)
+	DeleteURLs(userID string, urls []string) error
 	CheckDBConnection() error
 }
 
@@ -87,6 +88,10 @@ func (s *URLService) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, e
 		return nil, err
 	}
 	return readDTO, nil
+}
+
+func (s *URLService) DeleteURLs(userID string, urls []string) error {
+	return s.store.DeleteURLs(userID, urls)
 }
 
 func (s *URLService) CheckDBConnection() error {

@@ -233,6 +233,38 @@ func TestURLHandler_getUserURLsHandler(t *testing.T) {
 	}
 }
 
+func TestURLHandler_deleteUserURLsHandler(t *testing.T) {
+	cfg := config.GetConfig()
+	s := mocks.NewURLStore()
+	srv := service.NewURLService(s, &cfg)
+	handler := NewURLHandler(srv)
+	httpSrv := httptest.NewServer(handler.Router)
+
+	defer httpSrv.Close()
+
+	testCases := []struct {
+		method       string
+		expectedCode int
+		body         string
+		hasError     bool
+	}{
+		{method: http.MethodDelete, expectedCode: http.StatusAccepted, body: "[\"test1\",\"test2\"]", hasError: false},
+		{method: http.MethodDelete, expectedCode: http.StatusBadRequest, body: "", hasError: true},
+		{method: http.MethodDelete, expectedCode: http.StatusBadRequest, body: "{}", hasError: true},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.method, func(t *testing.T) {
+			req := resty.New().R()
+			req.Method = tc.method
+			req.URL = httpSrv.URL + "/api/user/urls"
+			req.Body = tc.body
+			resp, err := req.Send()
+			assert.NoError(t, err, "error making HTTP request")
+			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Response code didn't match expected")
+		})
+	}
+}
+
 func TestURLHandler_pingURLHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	mockStore := new(mocks.MockStore)

@@ -31,6 +31,7 @@ func NewURLHandler(service service.Service) *URLHandler {
 	router.Post("/api/shorten/batch", h.batchCreateURLHandlerJSON)
 	router.Get("/{shorted}", h.getURLHandler)
 	router.Get("/api/user/urls", h.getUserURLsHandler)
+	router.Delete("/api/user/urls", h.deleteUserURLsHandler)
 	router.Get("/ping", h.pingURLHandler)
 	return h
 }
@@ -137,6 +138,26 @@ func (h *URLHandler) getUserURLsHandler(w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(http.StatusNoContent)
 	}
 
+}
+
+func (h *URLHandler) deleteUserURLsHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := jwt.GetAuthCookie(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	userID := jwt.GetUserID(cookie)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	var urls []string
+	if err = json.Unmarshal(body, &urls); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	go h.service.DeleteURLs(userID, urls)
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *URLHandler) pingURLHandler(w http.ResponseWriter, _ *http.Request) {
