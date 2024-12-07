@@ -128,11 +128,11 @@ func TestPostgresURLStore_GetURL(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.key == tc.getKey && tc.userID == tc.getUserID {
-				mock.ExpectQuery(`select original_url from urls where shorted_url = \$1 and user_id = \$2`).
+				mock.ExpectQuery(`select original_url from urls where shorted_url = \$1 and user_id = \$2 and deleted_at is null`).
 					WithArgs(tc.getKey, tc.getUserID).
 					WillReturnRows(sqlmock.NewRows([]string{"original_url"}).AddRow(tc.value))
 			} else {
-				mock.ExpectQuery(`select original_url from urls where shorted_url = \$1 and user_id = \$2`).
+				mock.ExpectQuery(`select original_url from urls where shorted_url = \$1 and user_id = \$2 and deleted_at is null`).
 					WithArgs(tc.getKey, tc.getUserID).
 					WillReturnError(sql.ErrNoRows)
 			}
@@ -174,11 +174,11 @@ func TestPostgresURLStore_GetUserURLs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			if !tc.hasError {
-				mock.ExpectQuery(`select original_url, short_url from urls where user_id = \$1`).
+				mock.ExpectQuery(`select original_url, short_url from urls where user_id = \$1 and deleted_at is null`).
 					WithArgs(tc.getUserID).
 					WillReturnRows(sqlmock.NewRows([]string{"original_url", "short_url"}).AddRow(tc.originalURL, tc.shortURL))
 			} else {
-				mock.ExpectQuery(`select original_url, short_url from urls where user_id = \$1`).
+				mock.ExpectQuery(`select original_url, short_url from urls where user_id = \$1 and deleted_at is null`).
 					WithArgs(tc.getUserID).
 					WillReturnError(sql.ErrNoRows)
 			}

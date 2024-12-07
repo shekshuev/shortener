@@ -43,6 +43,7 @@ func NewPostgresURLStore(cfg *config.Config) *PostgresURLStore {
                 shorted_url text not null,
 				created_at timestamp not null default now(),
 				updated_at timestamp not null default now(),
+				deleted_at timestamp,
 				constraint urls_id_pk primary key(id),
 				constraint ulrs_original_url_uk unique (original_url)
             );
@@ -133,7 +134,7 @@ func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO
 
 func (s *PostgresURLStore) GetURL(key, userID string) (string, error) {
 	query := `
-		select original_url from urls where shorted_url = $1 and user_id = $2;
+		select original_url from urls where shorted_url = $1 and user_id = $2 and deleted_at is null;
 	`
 	var value string
 	err := s.db.QueryRow(query, key, userID).Scan(&value)
@@ -145,7 +146,7 @@ func (s *PostgresURLStore) GetURL(key, userID string) (string, error) {
 
 func (s *PostgresURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
 	query := `
-		select original_url, short_url from urls where user_id = $1;
+		select original_url, short_url from urls where user_id = $1 and deleted_at is null;
 	`
 	var readDTO []models.UserShortURLReadDTO
 	rows, err := s.db.Query(query, userID)
