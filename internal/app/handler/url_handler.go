@@ -114,7 +114,12 @@ func (h *URLHandler) getURLHandler(w http.ResponseWriter, r *http.Request) {
 	if longURL, err := h.service.GetLongURL(urlPath, userID); err == nil {
 		http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
 	} else {
-		w.WriteHeader(http.StatusBadRequest)
+		if err == store.ErrAlreadyDeleted {
+			w.WriteHeader(http.StatusGone)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+
 	}
 
 }

@@ -129,11 +129,11 @@ func TestPostgresURLStore_GetURL(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.key == tc.getKey && tc.userID == tc.getUserID {
-				mock.ExpectQuery(`select original_url from urls where shorted_url = \$1 and user_id = \$2 and deleted_at is null`).
+				mock.ExpectQuery(`select original_url, deleted_at is not null as is_deleted from urls where shorted_url = \$1 and user_id = \$2`).
 					WithArgs(tc.getKey, tc.getUserID).
-					WillReturnRows(sqlmock.NewRows([]string{"original_url"}).AddRow(tc.value))
+					WillReturnRows(sqlmock.NewRows([]string{"original_url", "is_deleted"}).AddRow(tc.value, false))
 			} else {
-				mock.ExpectQuery(`select original_url from urls where shorted_url = \$1 and user_id = \$2 and deleted_at is null`).
+				mock.ExpectQuery(`select original_url, deleted_at is not null as is_deleted from urls where shorted_url = \$1 and user_id = \$2`).
 					WithArgs(tc.getKey, tc.getUserID).
 					WillReturnError(sql.ErrNoRows)
 			}

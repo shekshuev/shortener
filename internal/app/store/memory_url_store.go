@@ -87,8 +87,11 @@ func (s *MemoryURLStore) GetURL(key, userID string) (string, error) {
 	if !exists {
 		return "", ErrNotFound
 	}
-	if value.UserID != userID || value.IsDeleted {
+	if value.UserID != userID {
 		return "", ErrNotFound
+	}
+	if value.IsDeleted {
+		return "", ErrAlreadyDeleted
 	}
 	return value.URL, nil
 }
