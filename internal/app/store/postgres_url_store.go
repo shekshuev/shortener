@@ -169,6 +169,9 @@ func (s *PostgresURLStore) GetUserURLs(userID string) ([]models.UserShortURLRead
 		}
 		readDTO = append(readDTO, models.UserShortURLReadDTO{ShortURL: shortURL, OriginalURL: originalURL})
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return readDTO, nil
 }
 
