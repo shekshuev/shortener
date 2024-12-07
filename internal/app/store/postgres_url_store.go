@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	_ "github.com/jackc/pgx/stdlib"
+	"github.com/lib/pq"
 	"go.uber.org/zap"
 
 	"github.com/shekshuev/shortener/internal/app/config"
@@ -165,6 +166,76 @@ func (s *PostgresURLStore) GetUserURLs(userID string) ([]models.UserShortURLRead
 		readDTO = append(readDTO, models.UserShortURLReadDTO{ShortURL: shortURL, OriginalURL: originalURL})
 	}
 	return readDTO, nil
+}
+
+func (s *PostgresURLStore) DeleteURLs(userID string, urls []string) error {
+	if len(userID) == 0 {
+		return ErrEmptyUserID
+	}
+	if len(urls) == 0 {
+		return ErrEmptyURLs
+	}
+
+	ch := make(chan string, len(urls))
+	for _, url := range urls {
+		ch <- url
+	}
+	close(ch)
+
+	const workers = 4
+	results := make(chan []string, workers)
+	for i := 0; i < workers; i++ {
+		go func() {
+			var batch []string
+			for url := range ch {
+				batch = append(batch, url)
+				if len(batch) >= 100 {
+					results <- batch
+					batch = nil
+				}
+			}
+			if len(batch) > 0 {
+				results <- batch
+			}
+		}()
+	}
+
+	go func() {
+		for i := 0; i < workers; i++ {
+			results <- nil
+		}
+		close(results)
+	}()
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	query := `
+        update urls set deleted_at = now() where shorted_url = any($1) and user_id = $2 and deleted_at is null;
+    `
+	for batch := range results {
+		if batch == nil {
+			continue
+		}
+		_, err = tx.Exec(query, pq.Array(batch), userID)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *PostgresURLStore) Close() error {

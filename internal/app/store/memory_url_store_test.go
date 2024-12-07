@@ -135,3 +135,79 @@ func TestMemoryURLStore_GetUserURLs(t *testing.T) {
 		})
 	}
 }
+
+func TestMemoryURLStore_DeleteURLs(t *testing.T) {
+	userID := "1"
+	testCases := []struct {
+		name         string
+		setupURLs    []models.BatchShortURLCreateDTO
+		deleteURLs   []string
+		expectedURLs int
+		userID       string
+		hasError     bool
+	}{
+		{
+			name: "Delete existing URLs",
+			setupURLs: []models.BatchShortURLCreateDTO{
+				{OriginalURL: "https://ya.ru", ShortURL: "short1"},
+				{OriginalURL: "https://google.com", ShortURL: "short2"},
+			},
+			deleteURLs:   []string{"short1"},
+			expectedURLs: 1,
+			userID:       userID,
+			hasError:     false,
+		},
+		{
+			name: "Delete non-existent URLs",
+			setupURLs: []models.BatchShortURLCreateDTO{
+				{OriginalURL: "https://ya.ru", ShortURL: "short1"},
+			},
+			deleteURLs:   []string{"short3"},
+			expectedURLs: 1,
+			userID:       userID,
+			hasError:     false,
+		},
+		{
+			name: "Delete URLs with wrong userID",
+			setupURLs: []models.BatchShortURLCreateDTO{
+				{OriginalURL: "https://ya.ru", ShortURL: "short1"},
+			},
+			deleteURLs:   []string{"short1"},
+			expectedURLs: 1,
+			userID:       "2",
+			hasError:     false,
+		},
+		{
+			name:         "Empty delete list",
+			setupURLs:    []models.BatchShortURLCreateDTO{},
+			deleteURLs:   []string{},
+			expectedURLs: 0,
+			userID:       userID,
+			hasError:     true,
+		},
+	}
+	cfg := config.GetConfig()
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
+			err := s.SetBatchURL(tc.setupURLs, userID)
+			assert.Nil(t, err, "Error during setup")
+
+			err = s.DeleteURLs(tc.userID, tc.deleteURLs)
+			if tc.hasError {
+				assert.NotNil(t, err, "Expected error but got nil")
+			} else {
+				assert.Nil(t, err, "Unexpected error during deletion")
+			}
+
+			userURLs, err := s.GetUserURLs(userID)
+			if tc.hasError {
+				assert.NotNil(t, err, "Expected error for empty URLs but got nil")
+			} else {
+				assert.Nil(t, err, "Unexpected error during GetUserURLs")
+			}
+			assert.Len(t, userURLs, tc.expectedURLs, "Unexpected number of URLs")
+		})
+	}
+}

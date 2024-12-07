@@ -77,6 +77,29 @@ func (m *MockStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, er
 	return readDTO, nil
 }
 
+func (s *MockStore) DeleteURLs(userID string, urls []string) error {
+	if s.urls == nil {
+		return store.ErrNotInitialized
+	}
+	if len(userID) == 0 {
+		return store.ErrEmptyUserID
+	}
+	if len(urls) == 0 {
+		return store.ErrEmptyURLs
+	}
+
+	for _, shortURL := range urls {
+		if value, exists := s.urls[shortURL]; exists {
+			if value.UserID == userID {
+				value.IsDeleted = true
+				s.urls[shortURL] = value
+			}
+		}
+	}
+
+	return nil
+}
+
 func (m *MockStore) CheckDBConnection() error {
 	args := m.Called()
 	return args.Error(0)

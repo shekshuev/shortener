@@ -11,8 +11,9 @@ import (
 )
 
 type UserURL struct {
-	UserID string
-	URL    string
+	UserID    string
+	URL       string
+	IsDeleted bool
 }
 
 type MemoryURLStore struct {
@@ -86,7 +87,7 @@ func (s *MemoryURLStore) GetURL(key, userID string) (string, error) {
 	if !exists {
 		return "", ErrNotFound
 	}
-	if value.UserID != userID {
+	if value.UserID != userID || value.IsDeleted {
 		return "", ErrNotFound
 	}
 	return value.URL, nil
@@ -100,7 +101,7 @@ func (s *MemoryURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDT
 	}
 	var readDTO []models.UserShortURLReadDTO
 	for key, value := range s.urls {
-		if value.UserID == userID {
+		if value.UserID == userID && !value.IsDeleted {
 			readDTO = append(readDTO, models.UserShortURLReadDTO{ShortURL: key, OriginalURL: value.URL})
 		}
 	}
@@ -108,6 +109,32 @@ func (s *MemoryURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDT
 		return nil, ErrNotFound
 	}
 	return readDTO, nil
+}
+
+func (s *MemoryURLStore) DeleteURLs(userID string, urls []string) error {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	if s.urls == nil {
+		return ErrNotInitialized
+	}
+	if len(userID) == 0 {
+		return ErrEmptyUserID
+	}
+	if len(urls) == 0 {
+		return ErrEmptyURLs
+	}
+
+	for _, shortURL := range urls {
+		if value, exists := s.urls[shortURL]; exists {
+			if value.UserID == userID {
+				value.IsDeleted = true
+				s.urls[shortURL] = value
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s *MemoryURLStore) Close() error {

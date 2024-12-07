@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/lib/pq"
 	"github.com/shekshuev/shortener/internal/app/config"
 	"github.com/shekshuev/shortener/internal/app/models"
 	"github.com/stretchr/testify/assert"
@@ -193,6 +194,76 @@ func TestPostgresURLStore_GetUserURLs(t *testing.T) {
 			if err := mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("Not all expectations were met: %v", err)
 			}
+		})
+	}
+}
+
+func TestPostgresURLStore_DeleteURLs(t *testing.T) {
+	testCases := []struct {
+		name         string
+		userID       string
+		urls         []string
+		hasError     bool
+		expectedRows int64
+	}{
+		{
+			name:         "Delete existing URLs",
+			userID:       "1",
+			urls:         []string{"short1", "short2"},
+			hasError:     false,
+			expectedRows: 2,
+		},
+		{
+			name:         "Delete non-existent URLs",
+			userID:       "1",
+			urls:         []string{"short3"},
+			hasError:     false,
+			expectedRows: 0,
+		},
+		{
+			name:         "Empty URL list",
+			userID:       "1",
+			urls:         []string{},
+			hasError:     true,
+			expectedRows: 0,
+		},
+		{
+			name:         "Invalid userID",
+			userID:       "",
+			urls:         []string{"short1"},
+			hasError:     true,
+			expectedRows: 0,
+		},
+	}
+
+	cfg := config.GetConfig()
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	if err != nil {
+		t.Errorf("Error creating db mock: %v", err)
+	}
+	defer db.Close()
+
+	for _, tc := range testCases {
+		s := &PostgresURLStore{cfg: &cfg, db: db}
+		t.Run(tc.name, func(t *testing.T) {
+			if len(tc.urls) > 0 && tc.userID != "" {
+				mock.ExpectBegin()
+				mock.ExpectExec(`(?i)update urls set deleted_at = now\(\) where shorted_url = any\(\$1\) and user_id = \$2 and deleted_at is null`).
+					WithArgs(pq.Array(tc.urls), tc.userID).
+					WillReturnResult(sqlmock.NewResult(0, tc.expectedRows))
+				mock.ExpectCommit()
+			}
+
+			err := s.DeleteURLs(tc.userID, tc.urls)
+			if tc.hasError {
+				assert.NotNil(t, err, "Expected error but got nil")
+			} else {
+				assert.Nil(t, err, "Unexpected error during deletion")
+				if err := mock.ExpectationsWereMet(); err != nil {
+					t.Errorf("Not all expectations were met: %v", err)
+				}
+			}
+
 		})
 	}
 }

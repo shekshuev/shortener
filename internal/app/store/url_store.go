@@ -11,6 +11,7 @@ type URLStore interface {
 	SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userID string) error
 	GetURL(key, userID string) (string, error)
 	GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error)
+	DeleteURLs(userID string, urls []string) error
 	Close() error
 }
 
@@ -24,3 +25,4 @@ var ErrEmptyValue = fmt.Errorf("value cannot be empty")
 var ErrEmptyUserID = fmt.Errorf("user ID cannot be empty")
 var ErrNotFound = fmt.Errorf("not found")
 var ErrNotInitialized = fmt.Errorf("store not initialized")
+var ErrEmptyURLs = fmt.Errorf("no urls provided")
