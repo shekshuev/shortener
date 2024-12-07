@@ -77,8 +77,8 @@ func (m *MockStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, er
 	return readDTO, nil
 }
 
-func (s *MockStore) DeleteURLs(userID string, urls []string) error {
-	if s.urls == nil {
+func (m *MockStore) DeleteURLs(userID string, urls []string) error {
+	if m.urls == nil {
 		return store.ErrNotInitialized
 	}
 	if len(userID) == 0 {
@@ -89,10 +89,10 @@ func (s *MockStore) DeleteURLs(userID string, urls []string) error {
 	}
 
 	for _, shortURL := range urls {
-		if value, exists := s.urls[shortURL]; exists {
+		if value, exists := m.urls[shortURL]; exists {
 			if value.UserID == userID {
 				value.IsDeleted = true
-				s.urls[shortURL] = value
+				m.urls[shortURL] = value
 			}
 		}
 	}
