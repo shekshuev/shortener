@@ -155,7 +155,7 @@ func (s *PostgresURLStore) GetUserURLs(userID string) ([]models.UserShortURLRead
 	`
 	var readDTO []models.UserShortURLReadDTO
 	rows, err := s.db.Query(query, userID)
-	if err == sql.ErrNoRows {
+	if err != nil {
 		return nil, ErrNotFound
 	}
 	for rows.Next() {
