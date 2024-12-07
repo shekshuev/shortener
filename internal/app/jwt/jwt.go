@@ -15,8 +15,8 @@ type Claims struct {
 	UserID string `json:"user_id"`
 }
 
-const TOKEN_EXP = time.Hour * 3
-const SECRET_KEY = "supersecretkey"
+const TokenExp = time.Hour * 3
+const SecretKey = "supersecretkey"
 
 func GetAuthCookie(req *http.Request) (string, error) {
 	cookie, err := req.Cookie(CookieName)
@@ -29,11 +29,11 @@ func GetAuthCookie(req *http.Request) (string, error) {
 func BuildJWTString() (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TOKEN_EXP)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenExp)),
 		},
 		UserID: uuid.New().String(),
 	})
-	tokenString, err := token.SignedString([]byte(SECRET_KEY))
+	tokenString, err := token.SignedString([]byte(SecretKey))
 	if err != nil {
 		return "", err
 	}
@@ -43,7 +43,7 @@ func BuildJWTString() (string, error) {
 func fromString(tokenString string) *Claims {
 	claims := &Claims{}
 	jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
-		return []byte(SECRET_KEY), nil
+		return []byte(SecretKey), nil
 	})
 	return claims
 }
