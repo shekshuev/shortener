@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"sync"
 
 	_ "github.com/jackc/pgx/stdlib"
 	"github.com/lib/pq"
@@ -191,9 +192,12 @@ func (s *PostgresURLStore) DeleteURLs(userID string, urls []string) error {
 	close(ch)
 
 	const workers = 4
+	var wg sync.WaitGroup
 	results := make(chan []string, workers)
 	for i := 0; i < workers; i++ {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			var batch []string
 			for url := range ch {
 				batch = append(batch, url)
@@ -212,6 +216,7 @@ func (s *PostgresURLStore) DeleteURLs(userID string, urls []string) error {
 		for i := 0; i < workers; i++ {
 			results <- nil
 		}
+		wg.Wait()
 		close(results)
 	}()
 
