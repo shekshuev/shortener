@@ -116,7 +116,6 @@ func (h *URLHandler) getURLHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
 }
 
 func (h *URLHandler) getUserURLsHandler(w http.ResponseWriter, r *http.Request) {
@@ -125,6 +124,7 @@ func (h *URLHandler) getUserURLsHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 	userID := jwt.GetUserID(cookie)
+	w.Header().Set("Content-Type", "application/json")
 	if readDTO, err := h.service.GetUserURLs(userID); err == nil {
 		resp, err := json.Marshal(readDTO)
 		if err != nil {
