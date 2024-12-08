@@ -151,7 +151,7 @@ func (s *PostgresURLStore) GetURL(key string) (string, error) {
 
 func (s *PostgresURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
 	query := `
-		select original_url, short_url from urls where user_id = $1 and deleted_at is null;
+		select original_url, shorted_url from urls where user_id = $1 and deleted_at is null;
 	`
 	var readDTO []models.UserShortURLReadDTO
 	rows, err := s.db.Query(query, userID)

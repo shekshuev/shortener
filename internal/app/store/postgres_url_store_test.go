@@ -36,7 +36,7 @@ func TestPostgresURLStore_SetURL(t *testing.T) {
 			if !tc.hasError {
 				mock.ExpectQuery(`(?i)insert into urls \(original_url, shorted_url, user_id\) values \(\$1, \$2, \$3\) on conflict \(original_url\) do update set updated_at = now\(\) returning \(created_at = updated_at\) as is_new, shorted_url;`).
 					WithArgs(tc.value, tc.key, tc.userID).
-					WillReturnRows(sqlmock.NewRows([]string{"is_new", "short_url"}).AddRow(true, "test"))
+					WillReturnRows(sqlmock.NewRows([]string{"is_new", "shorted_url"}).AddRow(true, "test"))
 			}
 			_, err := s.SetURL(tc.key, tc.value, tc.userID)
 			if tc.hasError {
@@ -89,7 +89,7 @@ func TestPostgresURLStore_SetBatchURL(t *testing.T) {
 				for _, dto := range tc.createDTO {
 					mock.ExpectQuery(`(?i)insert into urls \(original_url, shorted_url, user_id\) values \(\$1, \$2, \$3\) on conflict \(original_url\) do update set updated_at = now\(\) returning \(created_at = updated_at\) as is_new, shorted_url;`).
 						WithArgs(dto.OriginalURL, dto.ShortURL, tc.userID).
-						WillReturnRows(sqlmock.NewRows([]string{"is_new", "short_url"}).AddRow(true, "test"))
+						WillReturnRows(sqlmock.NewRows([]string{"is_new", "shorted_url"}).AddRow(true, "test"))
 				}
 				mock.ExpectCommit()
 			}
@@ -173,11 +173,11 @@ func TestPostgresURLStore_GetUserURLs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			if !tc.hasError {
-				mock.ExpectQuery(`select original_url, short_url from urls where user_id = \$1 and deleted_at is null`).
+				mock.ExpectQuery(`select original_url, shorted_url from urls where user_id = \$1 and deleted_at is null`).
 					WithArgs(tc.getUserID).
-					WillReturnRows(sqlmock.NewRows([]string{"original_url", "short_url"}).AddRow(tc.originalURL, tc.shortURL))
+					WillReturnRows(sqlmock.NewRows([]string{"original_url", "shorted_url"}).AddRow(tc.originalURL, tc.shortURL))
 			} else {
-				mock.ExpectQuery(`select original_url, short_url from urls where user_id = \$1 and deleted_at is null`).
+				mock.ExpectQuery(`select original_url, shorted_url from urls where user_id = \$1 and deleted_at is null`).
 					WithArgs(tc.getUserID).
 					WillReturnError(sql.ErrNoRows)
 			}

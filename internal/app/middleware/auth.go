@@ -39,6 +39,7 @@ func RequestAuth(h http.Handler) http.Handler {
 				HttpOnly: true,
 			})
 			w.WriteHeader(http.StatusUnauthorized)
+			h.ServeHTTP(w, r)
 			return
 		}
 
