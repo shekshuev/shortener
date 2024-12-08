@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"sync"
 
 	"go.uber.org/zap"
@@ -102,7 +103,7 @@ func (s *MemoryURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDT
 	var readDTO []models.UserShortURLReadDTO
 	for key, value := range s.urls {
 		if value.UserID == userID && !value.IsDeleted {
-			readDTO = append(readDTO, models.UserShortURLReadDTO{ShortURL: key, OriginalURL: value.URL})
+			readDTO = append(readDTO, models.UserShortURLReadDTO{ShortURL: fmt.Sprintf("%s/%s", s.cfg.BaseURL, key), OriginalURL: value.URL})
 		}
 	}
 	if len(readDTO) == 0 {

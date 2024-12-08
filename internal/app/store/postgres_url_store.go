@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/jackc/pgx/stdlib"
 	"github.com/lib/pq"
@@ -167,7 +168,7 @@ func (s *PostgresURLStore) GetUserURLs(userID string) ([]models.UserShortURLRead
 		if err != nil {
 			return nil, err
 		}
-		readDTO = append(readDTO, models.UserShortURLReadDTO{ShortURL: shortURL, OriginalURL: originalURL})
+		readDTO = append(readDTO, models.UserShortURLReadDTO{ShortURL: fmt.Sprintf("%s/%s", s.cfg.BaseURL, shortURL), OriginalURL: originalURL})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
