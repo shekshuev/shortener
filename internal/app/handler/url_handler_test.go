@@ -213,7 +213,7 @@ func TestURLHandler_getUserURLsHandler(t *testing.T) {
 		hasError     bool
 	}{
 		{method: http.MethodGet, expectedCode: http.StatusOK, hasError: false},
-		{method: http.MethodGet, expectedCode: http.StatusNoContent, hasError: true},
+		{method: http.MethodGet, expectedCode: http.StatusUnauthorized, hasError: true},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.method, func(t *testing.T) {
@@ -242,19 +242,26 @@ func TestURLHandler_deleteUserURLsHandler(t *testing.T) {
 
 	defer httpSrv.Close()
 
+	testURL := "https://ya.ru"
+
 	testCases := []struct {
 		method       string
 		expectedCode int
 		body         string
-		hasError     bool
 	}{
-		{method: http.MethodDelete, expectedCode: http.StatusAccepted, body: "[\"test1\",\"test2\"]", hasError: false},
-		{method: http.MethodDelete, expectedCode: http.StatusBadRequest, body: "", hasError: true},
-		{method: http.MethodDelete, expectedCode: http.StatusBadRequest, body: "{}", hasError: true},
+		{method: http.MethodDelete, expectedCode: http.StatusAccepted, body: "[\"test1\",\"test2\"]"},
+		{method: http.MethodDelete, expectedCode: http.StatusBadRequest, body: ""},
+		{method: http.MethodDelete, expectedCode: http.StatusBadRequest, body: "{}"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.method, func(t *testing.T) {
-			req := resty.New().R()
+
+			client := resty.New()
+
+			_, err := client.R().SetBody(testURL).Post(httpSrv.URL)
+			assert.NoError(t, err, "error making HTTP request")
+
+			req := client.R()
 			req.Method = tc.method
 			req.URL = httpSrv.URL + "/api/user/urls"
 			req.Body = tc.body

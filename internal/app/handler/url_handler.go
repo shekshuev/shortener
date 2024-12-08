@@ -121,7 +121,7 @@ func (h *URLHandler) getURLHandler(w http.ResponseWriter, r *http.Request) {
 func (h *URLHandler) getUserURLsHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := jwt.GetAuthCookie(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnauthorized)
 	}
 	userID := jwt.GetUserID(cookie)
 	w.Header().Set("Content-Type", "application/json")
@@ -143,7 +143,7 @@ func (h *URLHandler) getUserURLsHandler(w http.ResponseWriter, r *http.Request) 
 func (h *URLHandler) deleteUserURLsHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := jwt.GetAuthCookie(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnauthorized)
 	}
 	userID := jwt.GetUserID(cookie)
 	body, err := io.ReadAll(r.Body)

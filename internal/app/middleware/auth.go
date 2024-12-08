@@ -11,7 +11,7 @@ func RequestAuth(h http.Handler) http.Handler {
 	log := logger.NewLogger()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jwtToken, err := jwt.GetAuthCookie(r)
-		if err != nil {
+		if err != nil && r.Method == http.MethodPost {
 			value, err := jwt.BuildJWTString()
 			if err != nil {
 				log.Log.Error(err.Error())
