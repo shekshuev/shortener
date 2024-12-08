@@ -9,7 +9,7 @@ type ShortURLReadDTO struct {
 }
 
 type SerializeData struct {
-	UUID        string `json:"uuid"`
+	UserID      string `json:"user_id"`
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
@@ -23,4 +23,9 @@ type BatchShortURLCreateDTO struct {
 type BatchShortURLReadDTO struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
+}
+
+type UserShortURLReadDTO struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
 }

@@ -2,8 +2,11 @@ package store
 
 import (
 	"database/sql"
+	"fmt"
+	"sync"
 
 	_ "github.com/jackc/pgx/stdlib"
+	"github.com/lib/pq"
 	"go.uber.org/zap"
 
 	"github.com/shekshuev/shortener/internal/app/config"
@@ -38,10 +41,12 @@ func NewPostgresURLStore(cfg *config.Config) *PostgresURLStore {
 		query = `
             create table urls (
                 id serial,
+				user_id text not null,
 				original_url text not null,
                 shorted_url text not null,
 				created_at timestamp not null default now(),
 				updated_at timestamp not null default now(),
+				deleted_at timestamp,
 				constraint urls_id_pk primary key(id),
 				constraint ulrs_original_url_uk unique (original_url)
             );
@@ -58,16 +63,19 @@ func NewPostgresURLStore(cfg *config.Config) *PostgresURLStore {
 	return store
 }
 
-func (s *PostgresURLStore) SetURL(key, value string) (string, error) {
+func (s *PostgresURLStore) SetURL(key, value, userID string) (string, error) {
 	if len(key) == 0 {
 		return "", ErrEmptyKey
 	}
 	if len(value) == 0 {
 		return "", ErrEmptyValue
 	}
+	if len(userID) == 0 {
+		return "", ErrEmptyUserID
+	}
 	log := logger.NewLogger()
 	query := `
-		insert into urls (original_url, shorted_url) values ($1, $2)
+		insert into urls (original_url, shorted_url, user_id) values ($1, $2, $3)
 		on conflict (original_url) do update set updated_at = now() 
 		returning (created_at = updated_at) as is_new, shorted_url;
 	`
@@ -75,7 +83,7 @@ func (s *PostgresURLStore) SetURL(key, value string) (string, error) {
 		isNew      bool
 		shorterURL string
 	)
-	err := s.db.QueryRow(query, value, key).Scan(&isNew, &shorterURL)
+	err := s.db.QueryRow(query, value, key, userID).Scan(&isNew, &shorterURL)
 	if err != nil {
 		log.Log.Error("Error upserting record", zap.Error(err))
 	}
@@ -85,14 +93,14 @@ func (s *PostgresURLStore) SetURL(key, value string) (string, error) {
 	return shorterURL, nil
 }
 
-func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO) error {
+func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userID string) error {
 	log := logger.NewLogger()
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
 	query := `
-		insert into urls (original_url, shorted_url) values ($1, $2)
+		insert into urls (original_url, shorted_url, user_id) values ($1, $2, $3)
 		on conflict (original_url) do update set updated_at = now()
 		returning (created_at = updated_at) as is_new, shorted_url;
 	`
@@ -104,11 +112,14 @@ func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO
 		if len(createDTO[i].OriginalURL) == 0 {
 			return ErrEmptyValue
 		}
+		if len(userID) == 0 {
+			return ErrEmptyUserID
+		}
 		var (
 			isNew    bool
 			shortURL string
 		)
-		err := s.db.QueryRow(query, createDTO[i].OriginalURL, createDTO[i].ShortURL).Scan(&isNew, &shortURL)
+		err := s.db.QueryRow(query, createDTO[i].OriginalURL, createDTO[i].ShortURL, userID).Scan(&isNew, &shortURL)
 		if err != nil {
 			log.Log.Error("Error upserting record", zap.Error(err))
 			tx.Rollback()
@@ -126,14 +137,118 @@ func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO
 
 func (s *PostgresURLStore) GetURL(key string) (string, error) {
 	query := `
-		select original_url from urls where shorted_url = $1
+		select original_url, deleted_at is not null as is_deleted from urls where shorted_url = $1;
 	`
 	var value string
-	err := s.db.QueryRow(query, key).Scan(&value)
+	var isDeleted bool
+	err := s.db.QueryRow(query, key).Scan(&value, &isDeleted)
 	if err == sql.ErrNoRows {
 		return "", ErrNotFound
 	}
+	if isDeleted {
+		return "", ErrAlreadyDeleted
+	}
 	return value, nil
+}
+
+func (s *PostgresURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
+	query := `
+		select original_url, shorted_url from urls where user_id = $1 and deleted_at is null;
+	`
+	var readDTO []models.UserShortURLReadDTO
+	rows, err := s.db.Query(query, userID)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	for rows.Next() {
+		var (
+			originalURL string
+			shortURL    string
+		)
+		err := rows.Scan(&originalURL, &shortURL)
+		if err != nil {
+			return nil, err
+		}
+		readDTO = append(readDTO, models.UserShortURLReadDTO{ShortURL: fmt.Sprintf("%s/%s", s.cfg.BaseURL, shortURL), OriginalURL: originalURL})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return readDTO, nil
+}
+
+func (s *PostgresURLStore) DeleteURLs(userID string, urls []string) error {
+	if len(userID) == 0 {
+		return ErrEmptyUserID
+	}
+	if len(urls) == 0 {
+		return ErrEmptyURLs
+	}
+
+	ch := make(chan string, len(urls))
+	for _, url := range urls {
+		ch <- url
+	}
+	close(ch)
+
+	const workers = 4
+	var wg sync.WaitGroup
+	results := make(chan []string, workers)
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var batch []string
+			for url := range ch {
+				batch = append(batch, url)
+				if len(batch) >= 100 {
+					results <- batch
+					batch = nil
+				}
+			}
+			if len(batch) > 0 {
+				results <- batch
+			}
+		}()
+	}
+
+	go func() {
+		for i := 0; i < workers; i++ {
+			results <- nil
+		}
+		wg.Wait()
+		close(results)
+	}()
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	query := `
+        update urls set deleted_at = now() where shorted_url = any($1) and user_id = $2 and deleted_at is null;
+    `
+	for batch := range results {
+		if batch == nil {
+			continue
+		}
+		_, err = tx.Exec(query, pq.Array(batch), userID)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *PostgresURLStore) Close() error {

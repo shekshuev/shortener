@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/google/uuid"
 	"github.com/shekshuev/shortener/internal/app/models"
 )
 
@@ -18,9 +17,9 @@ func (s *MemoryURLStore) CreateSnapshot() error {
 
 	for key, value := range s.urls {
 		urlData := models.SerializeData{
-			UUID:        uuid.New().String(),
+			UserID:      value.UserID,
 			ShortURL:    key,
-			OriginalURL: value,
+			OriginalURL: value.URL,
 		}
 
 		data, err := json.Marshal(urlData)
@@ -54,7 +53,7 @@ func (s *MemoryURLStore) LoadSnapshot() error {
 		if err != nil {
 			continue
 		}
-		s.urls[urlData.ShortURL] = urlData.OriginalURL
+		s.urls[urlData.ShortURL] = UserURL{UserID: urlData.UserID, URL: urlData.OriginalURL}
 	}
 
 	if err := scanner.Err(); err != nil {

@@ -16,10 +16,10 @@ func TestCreateSnapshot(t *testing.T) {
 	cfg := config.GetConfig()
 	removeTestFile(cfg.FileStoragePath)
 
-	store := &MemoryURLStore{urls: make(map[string]string), cfg: &cfg}
+	store := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
 
-	store.urls["short1"] = "https://ya.ru"
-	store.urls["short2"] = "https://google.com"
+	store.urls["short1"] = UserURL{UserID: "1", URL: "https://ya.ru"}
+	store.urls["short2"] = UserURL{UserID: "1", URL: "https://google.com"}
 
 	err := store.CreateSnapshot()
 	assert.Nil(t, err, "Error should be nil when creating snapshot")
@@ -34,14 +34,14 @@ func TestLoadSnapshot(t *testing.T) {
 	cfg := config.GetConfig()
 	removeTestFile(cfg.FileStoragePath)
 
-	store := &MemoryURLStore{urls: make(map[string]string), cfg: &cfg}
+	store := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
 
-	store.urls["short1"] = "https://ya.ru"
-	store.urls["short2"] = "https://google.com"
+	store.urls["short1"] = UserURL{UserID: "1", URL: "https://ya.ru"}
+	store.urls["short2"] = UserURL{UserID: "1", URL: "https://google.com"}
 	err := store.CreateSnapshot()
 	assert.Nil(t, err, "Error should be nil when creating snapshot")
 
-	store2 := &MemoryURLStore{urls: make(map[string]string), cfg: &cfg}
+	store2 := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
 	err = store2.LoadSnapshot()
 	assert.Nil(t, err, "Error should be nil when loading snapshot")
 
@@ -53,7 +53,7 @@ func TestLoadSnapshot(t *testing.T) {
 func TestLoadSnapshot_FileDoesNotExist(t *testing.T) {
 	cfg := config.GetConfig()
 
-	store := &MemoryURLStore{urls: make(map[string]string), cfg: &cfg}
+	store := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
 
 	err := store.LoadSnapshot()
 	assert.Nil(t, err, "Error should be nil when loading snapshot from non-existent file")
