@@ -9,7 +9,7 @@ import (
 type URLStore interface {
 	SetURL(key, value, userID string) (string, error)
 	SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userID string) error
-	GetURL(key, userID string) (string, error)
+	GetURL(key string) (string, error)
 	GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error)
 	DeleteURLs(userID string, urls []string) error
 	Close() error

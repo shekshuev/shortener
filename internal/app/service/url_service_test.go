@@ -95,14 +95,12 @@ func TestURLService_GetLongURL(t *testing.T) {
 	shorted := "12345678"
 	userID := "1"
 	testCases := []struct {
-		shorted   string
-		name      string
-		getUserID string
-		hasError  bool
+		shorted  string
+		name     string
+		hasError bool
 	}{
-		{name: "Existing short URL", shorted: shorted, getUserID: userID, hasError: false},
-		{name: "Non-existing short URL", shorted: "non-existing", getUserID: userID, hasError: true},
-		{name: "Existing short URL with wrong userID", shorted: "non-existing", getUserID: "2", hasError: true},
+		{name: "Existing short URL", shorted: shorted, hasError: false},
+		{name: "Non-existing short URL", shorted: "non-existing", hasError: true},
 	}
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
@@ -111,7 +109,7 @@ func TestURLService_GetLongURL(t *testing.T) {
 	assert.Nil(t, err, "Set url store error is not nil")
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			longURL, err := service.GetLongURL(tc.shorted, tc.getUserID)
+			longURL, err := service.GetLongURL(tc.shorted)
 			if tc.shorted == "non-existing" {
 				assert.NotNil(t, err, "Error is nil")
 			} else {

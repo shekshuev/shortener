@@ -133,13 +133,13 @@ func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO
 	return tx.Commit()
 }
 
-func (s *PostgresURLStore) GetURL(key, userID string) (string, error) {
+func (s *PostgresURLStore) GetURL(key string) (string, error) {
 	query := `
-		select original_url, deleted_at is not null as is_deleted from urls where shorted_url = $1 and user_id = $2;
+		select original_url, deleted_at is not null as is_deleted from urls where shorted_url = $1;
 	`
 	var value string
 	var isDeleted bool
-	err := s.db.QueryRow(query, key, userID).Scan(&value, &isDeleted)
+	err := s.db.QueryRow(query, key).Scan(&value, &isDeleted)
 	if err == sql.ErrNoRows {
 		return "", ErrNotFound
 	}
