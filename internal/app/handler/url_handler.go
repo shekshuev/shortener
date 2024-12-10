@@ -8,6 +8,7 @@ import (
 	"path"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/shekshuev/shortener/internal/app/jwt"
 	"github.com/shekshuev/shortener/internal/app/middleware"
 	"github.com/shekshuev/shortener/internal/app/models"
 	"github.com/shekshuev/shortener/internal/app/service"
@@ -21,6 +22,7 @@ type URLHandler struct {
 
 func NewURLHandler(service service.Service) *URLHandler {
 	router := chi.NewRouter()
+	router.Use(middleware.RequestAuth)
 	router.Use(middleware.RequestLogger)
 	router.Use(middleware.GzipCompressor)
 	h := &URLHandler{service: service, Router: router}
@@ -28,6 +30,8 @@ func NewURLHandler(service service.Service) *URLHandler {
 	router.Post("/api/shorten", h.createURLHandlerJSON)
 	router.Post("/api/shorten/batch", h.batchCreateURLHandlerJSON)
 	router.Get("/{shorted}", h.getURLHandler)
+	router.Get("/api/user/urls", h.getUserURLsHandler)
+	router.Delete("/api/user/urls", h.deleteUserURLsHandler)
 	router.Get("/ping", h.pingURLHandler)
 	return h
 }
@@ -39,7 +43,15 @@ func (h *URLHandler) createURLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain")
-	shortURL, err := h.service.CreateShortURL(string(body))
+	cookie, err := jwt.GetAuthCookie(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	userID, err := jwt.GetUserID(cookie)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	shortURL, err := h.service.CreateShortURL(string(body), userID)
 	switch {
 	case errors.Is(err, store.ErrAlreadyExists):
 		w.WriteHeader(http.StatusConflict)
@@ -67,7 +79,15 @@ func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	shortURL, err := h.service.CreateShortURL(createDTO.URL)
+	cookie, err := jwt.GetAuthCookie(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	userID, err := jwt.GetUserID(cookie)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	shortURL, err := h.service.CreateShortURL(createDTO.URL, userID)
 
 	switch {
 	case errors.Is(err, store.ErrAlreadyExists):
@@ -95,9 +115,61 @@ func (h *URLHandler) getURLHandler(w http.ResponseWriter, r *http.Request) {
 	if longURL, err := h.service.GetLongURL(urlPath); err == nil {
 		http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
 	} else {
-		w.WriteHeader(http.StatusBadRequest)
+		if err == store.ErrAlreadyDeleted {
+			w.WriteHeader(http.StatusGone)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+
+	}
+}
+
+func (h *URLHandler) getUserURLsHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := jwt.GetAuthCookie(r)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+	}
+	userID, err := jwt.GetUserID(cookie)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if readDTO, err := h.service.GetUserURLs(userID); err == nil {
+		resp, err := json.Marshal(readDTO)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		_, err = w.Write(resp)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+	} else {
+		w.WriteHeader(http.StatusNoContent)
 	}
 
+}
+
+func (h *URLHandler) deleteUserURLsHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := jwt.GetAuthCookie(r)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+	}
+	userID, err := jwt.GetUserID(cookie)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	var urls []string
+	if err = json.Unmarshal(body, &urls); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	go h.service.DeleteURLs(userID, urls)
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *URLHandler) pingURLHandler(w http.ResponseWriter, _ *http.Request) {
@@ -121,7 +193,15 @@ func (h *URLHandler) batchCreateURLHandlerJSON(w http.ResponseWriter, r *http.Re
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	readDTO, err := h.service.BatchCreateShortURL(createDTO)
+	cookie, err := jwt.GetAuthCookie(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	userID, err := jwt.GetUserID(cookie)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	readDTO, err := h.service.BatchCreateShortURL(createDTO, userID)
 	switch {
 	case errors.Is(err, store.ErrAlreadyExists):
 		w.WriteHeader(http.StatusConflict)

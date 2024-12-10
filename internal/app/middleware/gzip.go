@@ -15,6 +15,7 @@ func GzipCompressor(h http.Handler) http.Handler {
 		if supportsGzip {
 			cw := compress.NewGzipWriter(w)
 			tmp = cw
+			tmp.Header().Set("Content-Encoding", "gzip")
 			defer cw.Close()
 		}
 

@@ -11,9 +11,11 @@ import (
 )
 
 type Service interface {
-	CreateShortURL(longURL string) (string, error)
-	BatchCreateShortURL(createDTO []models.BatchShortURLCreateDTO) ([]models.BatchShortURLReadDTO, error)
+	CreateShortURL(longURL, userID string) (string, error)
+	BatchCreateShortURL(createDTO []models.BatchShortURLCreateDTO, userID string) ([]models.BatchShortURLReadDTO, error)
 	GetLongURL(shortURL string) (string, error)
+	GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error)
+	DeleteURLs(userID string, urls []string)
 	CheckDBConnection() error
 }
 
@@ -30,12 +32,12 @@ func NewURLService(store store.URLStore, cfg *config.Config) *URLService {
 
 var ErrFailedToShorten = fmt.Errorf("failed to create short url")
 
-func (s *URLService) CreateShortURL(longURL string) (string, error) {
+func (s *URLService) CreateShortURL(longURL, userID string) (string, error) {
 	shorted, err := utils.Shorten(longURL)
 	if err != nil {
 		return "", ErrFailedToShorten
 	}
-	shortURL, err := s.store.SetURL(shorted, longURL)
+	shortURL, err := s.store.SetURL(shorted, longURL, userID)
 	if err != nil {
 		if errors.Is(err, store.ErrAlreadyExists) {
 			return fmt.Sprintf("%s/%s", s.cfg.BaseURL, shortURL), err
@@ -45,7 +47,7 @@ func (s *URLService) CreateShortURL(longURL string) (string, error) {
 	return fmt.Sprintf("%s/%s", s.cfg.BaseURL, shorted), nil
 }
 
-func (s *URLService) BatchCreateShortURL(createDTO []models.BatchShortURLCreateDTO) ([]models.BatchShortURLReadDTO, error) {
+func (s *URLService) BatchCreateShortURL(createDTO []models.BatchShortURLCreateDTO, userID string) ([]models.BatchShortURLReadDTO, error) {
 	for i := 0; i < len(createDTO); i++ {
 		shorted, err := utils.Shorten(createDTO[i].OriginalURL)
 		if err != nil {
@@ -54,7 +56,7 @@ func (s *URLService) BatchCreateShortURL(createDTO []models.BatchShortURLCreateD
 		createDTO[i].ShortURL = shorted
 	}
 
-	err := s.store.SetBatchURL(createDTO)
+	err := s.store.SetBatchURL(createDTO, userID)
 	readDTO := make([]models.BatchShortURLReadDTO, 0, len(createDTO))
 	for _, dto := range createDTO {
 		readDTO = append(readDTO, models.BatchShortURLReadDTO{
@@ -78,6 +80,18 @@ func (s *URLService) GetLongURL(shortURL string) (string, error) {
 		return "", err
 	}
 	return longURL, nil
+}
+
+func (s *URLService) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
+	readDTO, err := s.store.GetUserURLs(userID)
+	if err != nil {
+		return nil, err
+	}
+	return readDTO, nil
+}
+
+func (s *URLService) DeleteURLs(userID string, urls []string) {
+	s.store.DeleteURLs(userID, urls)
 }
 
 func (s *URLService) CheckDBConnection() error {

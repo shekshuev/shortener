@@ -196,6 +196,82 @@ func TestURLHandler_getURLHandler(t *testing.T) {
 	}
 }
 
+func TestURLHandler_getUserURLsHandler(t *testing.T) {
+	cfg := config.GetConfig()
+	s := mocks.NewURLStore()
+	srv := service.NewURLService(s, &cfg)
+	handler := NewURLHandler(srv)
+	httpSrv := httptest.NewServer(handler.Router)
+
+	defer httpSrv.Close()
+
+	testURL := "https://ya.ru"
+
+	testCases := []struct {
+		method       string
+		expectedCode int
+		hasError     bool
+	}{
+		{method: http.MethodGet, expectedCode: http.StatusOK, hasError: false},
+		{method: http.MethodGet, expectedCode: http.StatusUnauthorized, hasError: true},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.method, func(t *testing.T) {
+			client := resty.New()
+			if !tc.hasError {
+				_, err := client.R().SetBody(testURL).Post(httpSrv.URL)
+				assert.NoError(t, err, "error making HTTP request")
+			}
+			req := client.R()
+			req.Method = tc.method
+			req.URL = httpSrv.URL + "/api/user/urls"
+
+			resp, err := req.Send()
+			assert.NoError(t, err, "error making HTTP request")
+			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Response code didn't match expected")
+		})
+	}
+}
+
+func TestURLHandler_deleteUserURLsHandler(t *testing.T) {
+	cfg := config.GetConfig()
+	s := mocks.NewURLStore()
+	srv := service.NewURLService(s, &cfg)
+	handler := NewURLHandler(srv)
+	httpSrv := httptest.NewServer(handler.Router)
+
+	defer httpSrv.Close()
+
+	testURL := "https://ya.ru"
+
+	testCases := []struct {
+		method       string
+		expectedCode int
+		body         string
+	}{
+		{method: http.MethodDelete, expectedCode: http.StatusAccepted, body: "[\"test1\",\"test2\"]"},
+		{method: http.MethodDelete, expectedCode: http.StatusBadRequest, body: ""},
+		{method: http.MethodDelete, expectedCode: http.StatusBadRequest, body: "{}"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.method, func(t *testing.T) {
+
+			client := resty.New()
+
+			_, err := client.R().SetBody(testURL).Post(httpSrv.URL)
+			assert.NoError(t, err, "error making HTTP request")
+
+			req := client.R()
+			req.Method = tc.method
+			req.URL = httpSrv.URL + "/api/user/urls"
+			req.Body = tc.body
+			resp, err := req.Send()
+			assert.NoError(t, err, "error making HTTP request")
+			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Response code didn't match expected")
+		})
+	}
+}
+
 func TestURLHandler_pingURLHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	mockStore := new(mocks.MockStore)
