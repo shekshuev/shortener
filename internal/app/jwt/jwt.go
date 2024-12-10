@@ -40,22 +40,28 @@ func BuildJWTString() (string, error) {
 	return tokenString, nil
 }
 
-func fromString(tokenString string) *Claims {
+func fromString(tokenString string) (*Claims, error) {
 	claims := &Claims{}
-	jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+	_, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(SecretKey), nil
 	})
-	return claims
+	if err != nil {
+		return nil, err
+	}
+	return claims, nil
 }
 
-func GetUserID(tokenString string) string {
-	claims := fromString(tokenString)
-	return claims.UserID
+func GetUserID(tokenString string) (string, error) {
+	claims, err := fromString(tokenString)
+	if err != nil {
+		return "", err
+	}
+	return claims.UserID, nil
 }
 
 func IsTokenExpired(tokenString string) bool {
-	claims := fromString(tokenString)
-	if claims.ExpiresAt == nil {
+	claims, err := fromString(tokenString)
+	if err != nil {
 		return false
 	}
 	return claims.ExpiresAt.Before(time.Now())

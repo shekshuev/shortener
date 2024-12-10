@@ -47,7 +47,10 @@ func (h *URLHandler) createURLHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	userID := jwt.GetUserID(cookie)
+	userID, err := jwt.GetUserID(cookie)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
 	shortURL, err := h.service.CreateShortURL(string(body), userID)
 	switch {
 	case errors.Is(err, store.ErrAlreadyExists):
@@ -80,7 +83,10 @@ func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	userID := jwt.GetUserID(cookie)
+	userID, err := jwt.GetUserID(cookie)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
 	shortURL, err := h.service.CreateShortURL(createDTO.URL, userID)
 
 	switch {
@@ -123,7 +129,10 @@ func (h *URLHandler) getUserURLsHandler(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 	}
-	userID := jwt.GetUserID(cookie)
+	userID, err := jwt.GetUserID(cookie)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	if readDTO, err := h.service.GetUserURLs(userID); err == nil {
 		resp, err := json.Marshal(readDTO)
@@ -145,7 +154,10 @@ func (h *URLHandler) deleteUserURLsHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 	}
-	userID := jwt.GetUserID(cookie)
+	userID, err := jwt.GetUserID(cookie)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -185,7 +197,10 @@ func (h *URLHandler) batchCreateURLHandlerJSON(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	userID := jwt.GetUserID(cookie)
+	userID, err := jwt.GetUserID(cookie)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
 	readDTO, err := h.service.BatchCreateShortURL(createDTO, userID)
 	switch {
 	case errors.Is(err, store.ErrAlreadyExists):

@@ -26,7 +26,6 @@ func RequestAuth(h http.Handler) http.Handler {
 			}
 			r.AddCookie(cookie)
 			http.SetCookie(w, cookie)
-			jwtToken = value
 			h.ServeHTTP(w, r)
 			return
 		}
@@ -42,7 +41,6 @@ func RequestAuth(h http.Handler) http.Handler {
 			h.ServeHTTP(w, r)
 			return
 		}
-
 		h.ServeHTTP(w, r)
 	})
 }
