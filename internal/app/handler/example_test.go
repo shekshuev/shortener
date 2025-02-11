@@ -99,8 +99,11 @@ func ExampleURLHandler_getUserURLsHandler() {
 		fmt.Println("failed to create short URL")
 		return
 	}
-	defer rrCreate.Result().Body.Close()
-	cookies := rrCreate.Result().Cookies()
+
+	createResult := rrCreate.Result()
+	defer createResult.Body.Close()
+
+	cookies := createResult.Cookies()
 
 	getReq := httptest.NewRequest(http.MethodGet, "/api/user/urls", nil)
 
@@ -110,6 +113,8 @@ func ExampleURLHandler_getUserURLsHandler() {
 
 	rrGet := httptest.NewRecorder()
 	h.Router.ServeHTTP(rrGet, getReq)
+
+	defer rrGet.Result().Body.Close()
 
 	fmt.Println(rrGet.Code)
 	// Output: 200
@@ -133,8 +138,10 @@ func ExampleURLHandler_deleteUserURLsHandler() {
 		fmt.Println("failed to create short URL")
 		return
 	}
-	defer rrCreate.Result().Body.Close()
-	cookies := rrCreate.Result().Cookies()
+	createResult := rrCreate.Result()
+	defer createResult.Body.Close()
+
+	cookies := createResult.Cookies()
 
 	shortURL := strings.TrimSpace(rrCreate.Body.String())
 	shortID := strings.TrimPrefix(shortURL, cfg.BaseURL+"/")
