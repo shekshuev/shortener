@@ -5,8 +5,8 @@ import (
 	"math/rand"
 )
 
+// ShortenLength Длина сокращённого URL
 const (
-	// ShortenLength Длина сокращённого URL
 	ShortenLength = 8
 	charset       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )

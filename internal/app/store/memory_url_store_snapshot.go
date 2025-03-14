@@ -8,6 +8,7 @@ import (
 	"github.com/shekshuev/shortener/internal/app/models"
 )
 
+// CreateSnapshot создаёт снапшот хранилища в файл.
 func (s *MemoryURLStore) CreateSnapshot() error {
 	file, err := os.OpenFile(s.cfg.FileStoragePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -35,6 +36,7 @@ func (s *MemoryURLStore) CreateSnapshot() error {
 	return nil
 }
 
+// LoadSnapshot загружает данные из файла снапшота в хранилище.
 func (s *MemoryURLStore) LoadSnapshot() error {
 	if _, err := os.Stat(s.cfg.FileStoragePath); os.IsNotExist(err) {
 		return nil
