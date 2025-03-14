@@ -213,7 +213,7 @@ func TestURLHandler_getUserURLsHandler(t *testing.T) {
 		hasError     bool
 	}{
 		{method: http.MethodGet, expectedCode: http.StatusOK, hasError: false},
-		{method: http.MethodGet, expectedCode: http.StatusUnauthorized, hasError: true},
+		{method: http.MethodGet, expectedCode: http.StatusNoContent, hasError: true},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.method, func(t *testing.T) {
