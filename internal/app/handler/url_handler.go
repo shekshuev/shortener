@@ -149,6 +149,10 @@ func (h *URLHandler) getUserURLsHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if readDTO, err := h.service.GetUserURLs(userID); err == nil {
+		if readDTO == nil {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		resp, err := json.Marshal(readDTO)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
