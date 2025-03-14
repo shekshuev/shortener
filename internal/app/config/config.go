@@ -27,6 +27,7 @@ type envConfig struct {
 	DatabaseDSN     string `env:"DATABASE_DSN"`
 }
 
+// GetConfig возвращает экземпляр конфига
 func GetConfig() Config {
 	var cfg Config
 	cfg.DefaultServerAddress = "localhost:8080"

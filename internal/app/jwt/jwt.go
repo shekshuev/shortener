@@ -8,16 +8,22 @@ import (
 	"github.com/google/uuid"
 )
 
+// CookieName - имя куки, в котором хранится токен.
 const CookieName = "token"
 
+// Claims - структура, представляющая собой полезную нагрузку JWT-токена.
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID string `json:"user_id"`
 }
 
+// TokenExp - время жизни токена.
 const TokenExp = time.Hour * 3
+
+// SecretKey - секретный ключ для подписи токена.
 const SecretKey = "supersecretkey"
 
+// GetAuthCookie извлекает значение куки с токеном из HTTP-запроса.
 func GetAuthCookie(req *http.Request) (string, error) {
 	cookie, err := req.Cookie(CookieName)
 	if err != nil {
@@ -26,6 +32,7 @@ func GetAuthCookie(req *http.Request) (string, error) {
 	return cookie.Value, nil
 }
 
+// BuildJWTString создаёт новый JWT-токен и возвращает его строковое представление.
 func BuildJWTString() (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -40,6 +47,7 @@ func BuildJWTString() (string, error) {
 	return tokenString, nil
 }
 
+// fromString парсит строку токена и извлекает из него данные.
 func fromString(tokenString string) (*Claims, error) {
 	claims := &Claims{}
 	_, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
@@ -51,6 +59,7 @@ func fromString(tokenString string) (*Claims, error) {
 	return claims, nil
 }
 
+// GetUserID извлекает UserID из токена.
 func GetUserID(tokenString string) (string, error) {
 	claims, err := fromString(tokenString)
 	if err != nil {
@@ -59,6 +68,7 @@ func GetUserID(tokenString string) (string, error) {
 	return claims.UserID, nil
 }
 
+// IsTokenExpired проверяет, истёк ли срок действия токена.
 func IsTokenExpired(tokenString string) bool {
 	claims, err := fromString(tokenString)
 	if err != nil {

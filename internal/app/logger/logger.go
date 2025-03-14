@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Logger - структура для логирования с использованием zap.
 type Logger struct {
 	Log *zap.Logger
 }
@@ -16,6 +17,7 @@ var (
 	once     sync.Once
 )
 
+// NewLogger создаёт и возвращает экземпляр логгера (Singleton).
 func NewLogger() *Logger {
 	once.Do(func() {
 		instance = &Logger{Log: zap.NewNop()}
@@ -26,6 +28,7 @@ func NewLogger() *Logger {
 	return instance
 }
 
+// initialize инициализирует zap-логгер с указанным уровнем логирования.
 func (l *Logger) initialize(level string) error {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {

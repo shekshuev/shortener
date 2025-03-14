@@ -7,6 +7,7 @@ import (
 	"github.com/shekshuev/shortener/internal/app/compress"
 )
 
+// GzipCompressor сжимает данные перед отправкой и распаковывает при получении
 func GzipCompressor(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tmp := w

@@ -7,6 +7,7 @@ import (
 	"github.com/shekshuev/shortener/internal/app/logger"
 )
 
+// RequestAuth проверяет, авторизован ли пользователь или нет, и выставляет куки
 func RequestAuth(h http.Handler) http.Handler {
 	log := logger.NewLogger()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

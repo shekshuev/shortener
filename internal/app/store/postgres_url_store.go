@@ -14,11 +14,13 @@ import (
 	"github.com/shekshuev/shortener/internal/app/models"
 )
 
+// PostgresURLStore - хранилище URL в PostgreSQL.
 type PostgresURLStore struct {
 	cfg *config.Config
 	db  *sql.DB
 }
 
+// NewPostgresURLStore создаёт экземпляр хранилища и инициализирует БД.
 func NewPostgresURLStore(cfg *config.Config) *PostgresURLStore {
 	log := logger.NewLogger()
 	db, err := sql.Open("pgx", cfg.DatabaseDSN)
@@ -63,6 +65,7 @@ func NewPostgresURLStore(cfg *config.Config) *PostgresURLStore {
 	return store
 }
 
+// SetURL сохраняет новый URL в базе данных.
 func (s *PostgresURLStore) SetURL(key, value, userID string) (string, error) {
 	if len(key) == 0 {
 		return "", ErrEmptyKey
@@ -93,6 +96,7 @@ func (s *PostgresURLStore) SetURL(key, value, userID string) (string, error) {
 	return shorterURL, nil
 }
 
+// SetBatchURL сохраняет URL пользователю пачкой
 func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userID string) error {
 	log := logger.NewLogger()
 	tx, err := s.db.Begin()
@@ -135,6 +139,7 @@ func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO
 	return tx.Commit()
 }
 
+// GetURL возвращает оригинальный URL по короткому ключу.
 func (s *PostgresURLStore) GetURL(key string) (string, error) {
 	query := `
 		select original_url, deleted_at is not null as is_deleted from urls where shorted_url = $1;
@@ -151,6 +156,7 @@ func (s *PostgresURLStore) GetURL(key string) (string, error) {
 	return value, nil
 }
 
+// GetUserURLs возвращает список URL пользователя.
 func (s *PostgresURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
 	query := `
 		select original_url, shorted_url from urls where user_id = $1 and deleted_at is null;
@@ -177,6 +183,7 @@ func (s *PostgresURLStore) GetUserURLs(userID string) ([]models.UserShortURLRead
 	return readDTO, nil
 }
 
+// DeleteURLs удаляет список URL пользователя.
 func (s *PostgresURLStore) DeleteURLs(userID string, urls []string) error {
 	if len(userID) == 0 {
 		return ErrEmptyUserID
@@ -251,6 +258,7 @@ func (s *PostgresURLStore) DeleteURLs(userID string, urls []string) error {
 	return nil
 }
 
+// Close закрывает соединение с базой данных.
 func (s *PostgresURLStore) Close() error {
 	if s.db != nil {
 		return s.db.Close()
@@ -258,6 +266,7 @@ func (s *PostgresURLStore) Close() error {
 	return nil
 }
 
+// CheckDBConnection проверяет соединение с базой данных.
 func (s *PostgresURLStore) CheckDBConnection() error {
 	return s.db.Ping()
 }
