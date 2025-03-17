@@ -5,13 +5,16 @@ import (
 	"math/rand"
 )
 
+// ShortenLength Длина сокращённого URL
 const (
 	ShortenLength = 8
 	charset       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
 
+// ErrEmptyString - ошибка, возникающая при попытке сократить пустую строку.
 var ErrEmptyString = fmt.Errorf("string should not be empty")
 
+// Shorten генерирует случайную строку длиной ShortenLength для сокращения URL.
 func Shorten(s string) (string, error) {
 	if len(s) == 0 {
 		return "", ErrEmptyString

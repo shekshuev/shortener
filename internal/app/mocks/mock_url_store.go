@@ -8,18 +8,22 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// MockStore - моковая реализация хранилища URL.
 type MockStore struct {
 	mock.Mock
 	urls map[string]store.UserURL
 }
 
+// ErrNotFound - ошибка, возникающая при отсутствии запрашиваемого URL.
 var ErrNotFound = fmt.Errorf("not found")
 
+// NewURLStore создаёт новый моковый стор для хранения URL.
 func NewURLStore() *MockStore {
 	store := &MockStore{urls: make(map[string]store.UserURL)}
 	return store
 }
 
+// SetURL сохраняет URL в хранилище.
 func (m *MockStore) SetURL(key, value, userID string) (string, error) {
 	if len(key) == 0 {
 		return "", store.ErrEmptyKey
@@ -34,6 +38,7 @@ func (m *MockStore) SetURL(key, value, userID string) (string, error) {
 	return value, nil
 }
 
+// SetBatchURL сохраняет пакет URL в хранилище.
 func (m *MockStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userID string) error {
 	if len(userID) == 0 {
 		return store.ErrEmptyUserID
@@ -53,6 +58,7 @@ func (m *MockStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userI
 	return nil
 }
 
+// GetURL возвращает оригинальный URL по короткому ключу.
 func (m *MockStore) GetURL(key string) (string, error) {
 	value, exists := m.urls[key]
 	if !exists {
@@ -61,6 +67,7 @@ func (m *MockStore) GetURL(key string) (string, error) {
 	return value.URL, nil
 }
 
+// GetUserURLs возвращает все URL, принадлежащие пользователю.
 func (m *MockStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
 	var readDTO []models.UserShortURLReadDTO
 	for key, value := range m.urls {
@@ -74,6 +81,7 @@ func (m *MockStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, er
 	return readDTO, nil
 }
 
+// DeleteURLs помечает список URL как удалённые.
 func (m *MockStore) DeleteURLs(userID string, urls []string) error {
 	if m.urls == nil {
 		return store.ErrNotInitialized
@@ -97,11 +105,13 @@ func (m *MockStore) DeleteURLs(userID string, urls []string) error {
 	return nil
 }
 
+// CheckDBConnection проверяет подключение к базе данных (мокается для тестов).
 func (m *MockStore) CheckDBConnection() error {
 	args := m.Called()
 	return args.Error(0)
 }
 
+// Close закрывает подключение к хранилищу (мокается для тестов).
 func (m *MockStore) Close() error {
 	args := m.Called()
 	return args.Error(0)

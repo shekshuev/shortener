@@ -11,18 +11,21 @@ import (
 	"github.com/shekshuev/shortener/internal/app/models"
 )
 
+// UserURL представляет структуру для хранения информации о сокращённом URL.
 type UserURL struct {
 	UserID    string
 	URL       string
 	IsDeleted bool
 }
 
+// MemoryURLStore - хранилище URL в оперативной памяти.
 type MemoryURLStore struct {
 	mx   sync.RWMutex
 	urls map[string]UserURL
 	cfg  *config.Config
 }
 
+// NewMemoryURLStore создаёт новый экземпляр MemoryURLStore.
 func NewMemoryURLStore(cfg *config.Config) *MemoryURLStore {
 	store := &MemoryURLStore{urls: make(map[string]UserURL), cfg: cfg}
 	log := logger.NewLogger()
@@ -33,6 +36,7 @@ func NewMemoryURLStore(cfg *config.Config) *MemoryURLStore {
 	return store
 }
 
+// SetURL сохраняет новый URL в хранилище.
 func (s *MemoryURLStore) SetURL(key, value, userID string) (string, error) {
 	s.mx.Lock()
 	defer s.mx.Unlock()
@@ -52,6 +56,7 @@ func (s *MemoryURLStore) SetURL(key, value, userID string) (string, error) {
 	return value, nil
 }
 
+// SetBatchURL сохраняет пакет URL в хранилище.
 func (s *MemoryURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userID string) error {
 	s.mx.Lock()
 	defer s.mx.Unlock()
@@ -78,6 +83,7 @@ func (s *MemoryURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, 
 	return nil
 }
 
+// GetURL возвращает оригинальный URL по короткому ключу.
 func (s *MemoryURLStore) GetURL(key string) (string, error) {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
@@ -94,6 +100,7 @@ func (s *MemoryURLStore) GetURL(key string) (string, error) {
 	return value.URL, nil
 }
 
+// GetUserURLs возвращает список URL пользователя.
 func (s *MemoryURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
@@ -112,6 +119,7 @@ func (s *MemoryURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDT
 	return readDTO, nil
 }
 
+// DeleteURLs помечает список URL как удалённые.
 func (s *MemoryURLStore) DeleteURLs(userID string, urls []string) error {
 	s.mx.Lock()
 	defer s.mx.Unlock()
@@ -138,6 +146,7 @@ func (s *MemoryURLStore) DeleteURLs(userID string, urls []string) error {
 	return nil
 }
 
+// Close завершает работу хранилища, создавая снапшот.
 func (s *MemoryURLStore) Close() error {
 	return s.CreateSnapshot()
 }
