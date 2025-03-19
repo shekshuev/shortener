@@ -6,12 +6,14 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
+// Analyzer определяет анализатор, который проверяет отсутствие вызовов os.Exit в функции main пакета main.
 var Analyzer = &analysis.Analyzer{
 	Name: "no_exit",
 	Doc:  "Запрещает использование os.Exit в main функции пакета main",
 	Run:  run,
 }
 
+// run выполняет анализ AST файлов в пакете
 func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		if pass.Pkg.Name() != "main" {
