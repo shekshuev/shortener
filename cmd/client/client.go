@@ -49,7 +49,7 @@ func main() {
 	// читаем поток из тела ответа
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 	// и печатаем его
 	fmt.Println(string(body))
