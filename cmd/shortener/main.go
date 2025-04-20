@@ -64,16 +64,18 @@ func main() {
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		var err error
+		if cfg.EnableHTTPS {
+			err = server.ListenAndServeTLS(cfg.CertFile, cfg.KeyFile)
+		} else {
+			err = server.ListenAndServe()
+		}
+		if err != nil && err != http.ErrServerClosed {
 			l.Log.Error("Error starting server", zap.Error(err))
 		}
 	}()
 	go func() {
-		if cfg.EnableHTTPS {
-			http.ListenAndServeTLS("localhost:443", cfg.CertFile, cfg.KeyFile, nil)
-		} else {
-			http.ListenAndServe("localhost:6060", nil)
-		}
+		http.ListenAndServe("localhost:6060", nil)
 	}()
 
 	l.Log.Info("Server started")
