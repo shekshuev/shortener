@@ -38,7 +38,9 @@ func TestGzipCompressor_RequestWithGzipBody(t *testing.T) {
 
 	GzipCompressor(handler).ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Result().StatusCode)
+	resp := w.Result()
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, data, received)
 }
 
@@ -54,6 +56,7 @@ func TestGzipCompressor_ResponseWithGzip(t *testing.T) {
 	GzipCompressor(handler).ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	assert.Equal(t, "gzip", resp.Header.Get("Content-Encoding"))
 
 	gr, err := gzip.NewReader(resp.Body)
@@ -74,6 +77,7 @@ func TestGzipCompressor_NoGzipHeaders(t *testing.T) {
 	GzipCompressor(handler).ServeHTTP(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	assert.Empty(t, resp.Header.Get("Content-Encoding"))
 	body, _ := io.ReadAll(resp.Body)
 	assert.Equal(t, "no compression", string(body))
@@ -90,5 +94,7 @@ func TestGzipCompressor_InvalidGzipBody(t *testing.T) {
 
 	GzipCompressor(handler).ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
+	resp := w.Result()
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 }
