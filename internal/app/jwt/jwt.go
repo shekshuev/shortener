@@ -52,12 +52,23 @@ func fromString(tokenString string) (*Claims, error) {
 	claims := &Claims{}
 	_, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(SecretKey), nil
-	})
+	}, jwt.WithoutClaimsValidation())
 	if err != nil {
 		return nil, err
 	}
 	return claims, nil
 }
+
+// func fromString(tokenString string) (*Claims, error) {
+// 	claims := &Claims{}
+// 	_, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+// 		return []byte(SecretKey), nil
+// 	})
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return claims, nil
+// }
 
 // GetUserID извлекает UserID из токена.
 func GetUserID(tokenString string) (string, error) {
@@ -72,6 +83,9 @@ func GetUserID(tokenString string) (string, error) {
 func IsTokenExpired(tokenString string) bool {
 	claims, err := fromString(tokenString)
 	if err != nil {
+		return false
+	}
+	if claims.ExpiresAt == nil {
 		return false
 	}
 	return claims.ExpiresAt.Before(time.Now())
