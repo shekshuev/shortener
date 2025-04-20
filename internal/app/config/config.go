@@ -1,7 +1,9 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
+	"os"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/shekshuev/shortener/internal/app/logger"
@@ -36,6 +38,16 @@ type envConfig struct {
 	KeyFile         string `env:"TLS_KEY"`
 }
 
+type jsonConfig struct {
+	ServerAddress   string `json:"server_address"`
+	BaseURL         string `json:"base_url"`
+	FileStoragePath string `json:"file_storage_path"`
+	DatabaseDSN     string `json:"database_dsn"`
+	EnableHTTPS     bool   `json:"enable_https"`
+	CertFile        string `json:"cert_file"`
+	KeyFile         string `json:"key_file"`
+}
+
 // GetConfig возвращает экземпляр конфига
 func GetConfig() Config {
 	var cfg Config
@@ -52,6 +64,9 @@ func GetConfig() Config {
 }
 
 func parseFlags(cfg *Config) {
+	var configPath string
+	flag.StringVar(&configPath, "c", "", "path to JSON config file")
+	flag.StringVar(&configPath, "config", "", "path to JSON config file")
 	if f := flag.Lookup("a"); f == nil {
 		flag.StringVar(&cfg.ServerAddress, "a", cfg.DefaultServerAddress, "address and port to run server")
 	} else {
@@ -88,7 +103,9 @@ func parseFlags(cfg *Config) {
 	} else {
 		cfg.KeyFile = cfg.DefaultKeyFile
 	}
+
 	flag.Parse()
+	parseJSON(configPath, cfg)
 	parsEnv(cfg)
 }
 
@@ -119,5 +136,49 @@ func parsEnv(cfg *Config) {
 	}
 	if len(envCfg.KeyFile) > 0 {
 		cfg.KeyFile = envCfg.KeyFile
+	}
+}
+
+func parseJSON(path string, cfg *Config) {
+	if path == "" {
+		path = os.Getenv("CONFIG")
+	}
+	if path == "" {
+		return
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		logger.NewLogger().Log.Warn("Could not open config file", zap.Error(err))
+		return
+	}
+	defer file.Close()
+
+	var jCfg jsonConfig
+	if err := json.NewDecoder(file).Decode(&jCfg); err != nil {
+		logger.NewLogger().Log.Warn("Could not decode config JSON", zap.Error(err))
+		return
+	}
+
+	if cfg.ServerAddress == cfg.DefaultServerAddress && jCfg.ServerAddress != "" {
+		cfg.ServerAddress = jCfg.ServerAddress
+	}
+	if cfg.BaseURL == cfg.DefaultBaseURL && jCfg.BaseURL != "" {
+		cfg.BaseURL = jCfg.BaseURL
+	}
+	if cfg.FileStoragePath == cfg.DefaultFileStoragePath && jCfg.FileStoragePath != "" {
+		cfg.FileStoragePath = jCfg.FileStoragePath
+	}
+	if cfg.DatabaseDSN == cfg.DefaultDatabaseDSN && jCfg.DatabaseDSN != "" {
+		cfg.DatabaseDSN = jCfg.DatabaseDSN
+	}
+	if cfg.EnableHTTPS == cfg.DefaultEnableHTTPS {
+		cfg.EnableHTTPS = jCfg.EnableHTTPS
+	}
+	if cfg.CertFile == cfg.DefaultCertFile && jCfg.CertFile != "" {
+		cfg.CertFile = jCfg.CertFile
+	}
+	if cfg.KeyFile == cfg.DefaultKeyFile && jCfg.KeyFile != "" {
+		cfg.KeyFile = jCfg.KeyFile
 	}
 }
