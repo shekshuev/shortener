@@ -80,3 +80,46 @@ func TestGetConfig_DefaultPriority(t *testing.T) {
 	assert.Equal(t, cfg.CertFile, cfg.CertFile)
 	assert.Equal(t, cfg.KeyFile, cfg.KeyFile)
 }
+
+func TestGetConfig_JSONPriority(t *testing.T) {
+	// Создаём временный файл с JSON-конфигурацией
+	tmpFile, err := os.CreateTemp("", "config*.json")
+	assert.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	jsonContent := `{
+		"server_address": "localhost:9999",
+		"base_url": "http://json",
+		"file_storage_path": "json_path.txt",
+		"database_dsn": "json_dsn",
+		"enable_https": true,
+		"cert_file": "json_cert.pem",
+		"key_file": "json_key.pem"
+	}`
+	_, err = tmpFile.WriteString(jsonContent)
+	assert.NoError(t, err)
+	tmpFile.Close()
+
+	// Убедимся, что переменные окружения и флаги не мешают
+	os.Unsetenv("SERVER_ADDRESS")
+	os.Unsetenv("BASE_URL")
+	os.Unsetenv("FILE_STORAGE_PATH")
+	os.Unsetenv("DATABASE_DSN")
+	os.Unsetenv("ENABLE_HTTPS")
+	os.Unsetenv("TLS_CERT")
+	os.Unsetenv("TLS_KEY")
+
+	// Переустанавливаем флаги и добавляем путь к JSON
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	os.Args = []string{"cmd", "-c", tmpFile.Name()}
+
+	cfg := GetConfig()
+
+	assert.Equal(t, cfg.ServerAddress, "localhost:9999")
+	assert.Equal(t, cfg.BaseURL, "http://json")
+	assert.Equal(t, cfg.FileStoragePath, "json_path.txt")
+	assert.Equal(t, cfg.DatabaseDSN, "json_dsn")
+	assert.Equal(t, cfg.EnableHTTPS, true)
+	assert.Equal(t, cfg.CertFile, "json_cert.pem")
+	assert.Equal(t, cfg.KeyFile, "json_key.pem")
+}
