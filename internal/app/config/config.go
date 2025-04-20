@@ -65,8 +65,11 @@ func GetConfig() Config {
 
 func parseFlags(cfg *Config) {
 	var configPath string
-	flag.StringVar(&configPath, "c", "", "path to JSON config file")
-	flag.StringVar(&configPath, "config", "", "path to JSON config file")
+	if f := flag.Lookup("c"); f == nil {
+		flag.StringVar(&configPath, "c", "", "path to JSON config file")
+	} else if f := flag.Lookup("config"); f == nil {
+		flag.StringVar(&configPath, "config", "", "path to JSON config file")
+	}
 	if f := flag.Lookup("a"); f == nil {
 		flag.StringVar(&cfg.ServerAddress, "a", cfg.DefaultServerAddress, "address and port to run server")
 	} else {
@@ -93,13 +96,13 @@ func parseFlags(cfg *Config) {
 		cfg.EnableHTTPS = cfg.DefaultEnableHTTPS
 	}
 
-	if f := flag.Lookup("C"); f == nil {
-		flag.StringVar(&cfg.CertFile, "C", cfg.DefaultCertFile, "cert file")
+	if f := flag.Lookup("cert"); f == nil {
+		flag.StringVar(&cfg.CertFile, "cert", cfg.DefaultCertFile, "cert file")
 	} else {
 		cfg.CertFile = cfg.DefaultCertFile
 	}
-	if f := flag.Lookup("k"); f == nil {
-		flag.StringVar(&cfg.KeyFile, "k", cfg.DefaultKeyFile, "key file")
+	if f := flag.Lookup("key"); f == nil {
+		flag.StringVar(&cfg.KeyFile, "key", cfg.DefaultKeyFile, "key file")
 	} else {
 		cfg.KeyFile = cfg.DefaultKeyFile
 	}

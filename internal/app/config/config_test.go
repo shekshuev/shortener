@@ -49,7 +49,7 @@ func TestGetConfig_FlagPriority(t *testing.T) {
 	cert := "cert"
 	key := "key"
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	os.Args = []string{"cmd", "-a", serverAddress, "-b", baseURL, "-f", fileStoragePath, "-d", databaseDSN, "-s", "-C", cert, "-k", key}
+	os.Args = []string{"cmd", "-a", serverAddress, "-b", baseURL, "-f", fileStoragePath, "-d", databaseDSN, "-s", "-cert", cert, "-key", key}
 	defer func() { os.Args = os.Args[:1] }()
 	cfg := GetConfig()
 	assert.Equal(t, cfg.BaseURL, baseURL)
