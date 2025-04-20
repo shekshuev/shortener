@@ -78,8 +78,8 @@ func parseFlags(cfg *Config) {
 		cfg.EnableHTTPS = cfg.DefaultEnableHTTPS
 	}
 
-	if f := flag.Lookup("c"); f == nil {
-		flag.StringVar(&cfg.CertFile, "c", cfg.DefaultCertFile, "cert file")
+	if f := flag.Lookup("C"); f == nil {
+		flag.StringVar(&cfg.CertFile, "C", cfg.DefaultCertFile, "cert file")
 	} else {
 		cfg.CertFile = cfg.DefaultCertFile
 	}
