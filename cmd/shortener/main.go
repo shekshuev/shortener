@@ -69,7 +69,11 @@ func main() {
 		}
 	}()
 	go func() {
-		http.ListenAndServe("localhost:6060", nil)
+		if cfg.EnableHTTPS {
+			http.ListenAndServeTLS("localhost:443", cfg.CertFile, cfg.KeyFile, nil)
+		} else {
+			http.ListenAndServe("localhost:6060", nil)
+		}
 	}()
 
 	l.Log.Info("Server started")
