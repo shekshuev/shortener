@@ -60,11 +60,20 @@ func main() {
 		Addr:    cfg.ServerAddress,
 		Handler: urlHandler.Router,
 	}
+
 	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		var err error
+		if cfg.EnableHTTPS {
+			l.Log.Info("Starting HTTPS server", zap.String("addr", cfg.ServerAddress))
+			err = server.ListenAndServeTLS(cfg.CertFile, cfg.KeyFile)
+		} else {
+			l.Log.Info("Starting HTTP server", zap.String("addr", cfg.ServerAddress))
+			err = server.ListenAndServe()
+		}
+		if err != nil && err != http.ErrServerClosed {
 			l.Log.Error("Error starting server", zap.Error(err))
 		}
 	}()
@@ -72,9 +81,10 @@ func main() {
 		http.ListenAndServe("localhost:6060", nil)
 	}()
 
-	l.Log.Info("Server started")
+	l.Log.Info("Server started. Waiting for shutdown signal...")
+
 	<-done
-	l.Log.Info("Shutting down server...")
+	l.Log.Info("Shutdown signal received")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := urlStore.Close(); err != nil {
