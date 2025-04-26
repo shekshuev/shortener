@@ -18,6 +18,7 @@ type Service interface {
 	GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error)
 	DeleteURLs(userID string, urls []string)
 	CheckDBConnection() error
+	GetStats() (models.StatsDTO, error)
 }
 
 // URLService - реализация сервиса для управления URL.
@@ -110,4 +111,22 @@ func (s *URLService) CheckDBConnection() error {
 		return dbChecker.CheckDBConnection()
 	}
 	return ErrNotPostgresStore
+}
+
+// GetStats возвращает статистику: количество URL и пользователей.
+func (s *URLService) GetStats() (models.StatsDTO, error) {
+	urlsCount, err := s.store.CountURLs()
+	if err != nil {
+		return models.StatsDTO{}, err
+	}
+
+	usersCount, err := s.store.CountUsers()
+	if err != nil {
+		return models.StatsDTO{}, err
+	}
+
+	return models.StatsDTO{
+		URLs:  urlsCount,
+		Users: usersCount,
+	}, nil
 }

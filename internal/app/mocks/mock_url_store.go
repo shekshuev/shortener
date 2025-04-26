@@ -119,14 +119,12 @@ func (m *MockStore) Close() error {
 
 // CountURLs возвращает количество всех сокращённых URL в моке.
 func (m *MockStore) CountURLs() (int, error) {
-	return len(m.urls), nil
+	args := m.Called()
+	return args.Int(0), args.Error(1)
 }
 
 // CountUsers возвращает количество уникальных пользователей в моке.
 func (m *MockStore) CountUsers() (int, error) {
-	users := make(map[string]struct{})
-	for _, v := range m.urls {
-		users[v.UserID] = struct{}{}
-	}
-	return len(users), nil
+	args := m.Called()
+	return args.Int(0), args.Error(1)
 }
