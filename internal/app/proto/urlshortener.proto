@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package urlshortener;
+
+option go_package = "github.com/shekshuev/shortener/internal/app/proto";
+
+message ShortenRequest {
+  string url = 1;
+  string user_id = 2;
+}
+
+message ShortenResponse {
+  string result = 1;
+}
+
+message BatchShortenRequestItem {
+  string correlation_id = 1;
+  string original_url = 2;
+}
+
+message BatchShortenRequest {
+  repeated BatchShortenRequestItem items = 1;
+  string user_id = 2;
+}
+
+message BatchShortenResponseItem {
+  string correlation_id = 1;
+  string short_url = 2;
+}
+
+message BatchShortenResponse {
+  repeated BatchShortenResponseItem items = 1;
+}
+
+message UserURLsRequest {
+  string user_id = 1;
+}
+
+message UserURLItem {
+  string short_url = 1;
+  string original_url = 2;
+}
+
+message UserURLsResponse {
+  repeated UserURLItem urls = 1;
+}
+
+message DeleteURLsRequest {
+  repeated string short_urls = 1;
+  string user_id = 2;
+}
+
+message DeleteURLsResponse {}
+
+message PingRequest {}
+
+message PingResponse {}
+
+message StatsRequest {}
+
+message StatsResponse {
+  int32 urls = 1;
+  int32 users = 2;
+}
+
+message GetOriginalURLRequest {
+  string short_url = 1;
+}
+
+message GetOriginalURLResponse {
+  string original_url = 1;
+}
+
+service URLShortener {
+  rpc Shorten(ShortenRequest) returns (ShortenResponse);
+  rpc BatchShorten(BatchShortenRequest) returns (BatchShortenResponse);
+  rpc GetUserURLs(UserURLsRequest) returns (UserURLsResponse);
+  rpc DeleteUserURLs(DeleteURLsRequest) returns (DeleteURLsResponse);
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc GetStats(StatsRequest) returns (StatsResponse);
+  rpc GetOriginalURL(GetOriginalURLRequest) returns (GetOriginalURLResponse);
+}
