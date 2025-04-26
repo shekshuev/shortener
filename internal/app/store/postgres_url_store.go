@@ -270,3 +270,19 @@ func (s *PostgresURLStore) Close() error {
 func (s *PostgresURLStore) CheckDBConnection() error {
 	return s.db.Ping()
 }
+
+// CountURLs возвращает количество всех сокращённых URL в БД.
+func (s *PostgresURLStore) CountURLs() (int, error) {
+	var count int
+	query := `select count(*) from urls where deleted_at is null;`
+	err := s.db.QueryRow(query).Scan(&count)
+	return count, err
+}
+
+// CountUsers возвращает количество уникальных пользователей в БД.
+func (s *PostgresURLStore) CountUsers() (int, error) {
+	var count int
+	query := `select count(distinct user_id) from urls where deleted_at is null;`
+	err := s.db.QueryRow(query).Scan(&count)
+	return count, err
+}

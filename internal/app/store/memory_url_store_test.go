@@ -209,3 +209,31 @@ func TestMemoryURLStore_DeleteURLs(t *testing.T) {
 		})
 	}
 }
+
+func TestMemoryURLStore_CountURLs(t *testing.T) {
+	cfg := config.GetConfig()
+	s := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
+	count, err := s.CountURLs()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, count)
+	_, _ = s.SetURL("short1", "https://ya.ru", "user1")
+	_, _ = s.SetURL("short2", "https://google.com", "user2")
+	count, err = s.CountURLs()
+	assert.Nil(t, err)
+	assert.Equal(t, 2, count)
+}
+
+func TestMemoryURLStore_CountUsers(t *testing.T) {
+	cfg := config.GetConfig()
+	s := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
+	count, err := s.CountUsers()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, count)
+	_, _ = s.SetURL("short1", "https://ya.ru", "user1")
+	_, _ = s.SetURL("short2", "https://google.com", "user2")
+	_, _ = s.SetURL("short3", "https://example.com", "user1")
+
+	count, err = s.CountUsers()
+	assert.Nil(t, err)
+	assert.Equal(t, 2, count)
+}

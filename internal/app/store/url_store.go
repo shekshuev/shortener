@@ -14,6 +14,8 @@ type URLStore interface {
 	GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error)
 	DeleteURLs(userID string, urls []string) error
 	Close() error
+	CountURLs() (int, error)
+	CountUsers() (int, error)
 }
 
 // DatabaseChecker - интерфейс для проверки соединения с базой данных.

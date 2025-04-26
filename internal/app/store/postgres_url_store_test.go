@@ -295,3 +295,47 @@ func TestPostgresURLStore_CheckDBConnection(t *testing.T) {
 	}
 
 }
+
+func TestPostgresURLStore_CountURLs(t *testing.T) {
+	cfg := config.GetConfig()
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	if err != nil {
+		t.Fatalf("Error creating db mock: %v", err)
+	}
+	defer db.Close()
+
+	s := &PostgresURLStore{cfg: &cfg, db: db}
+
+	mock.ExpectQuery(`select count\(\*\) from urls where deleted_at is null;`).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(42))
+
+	count, err := s.CountURLs()
+	assert.Nil(t, err, "Error counting URLs")
+	assert.Equal(t, 42, count, "Unexpected number of URLs")
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Not all expectations were met: %v", err)
+	}
+}
+
+func TestPostgresURLStore_CountUsers(t *testing.T) {
+	cfg := config.GetConfig()
+	db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	if err != nil {
+		t.Fatalf("Error creating db mock: %v", err)
+	}
+	defer db.Close()
+
+	s := &PostgresURLStore{cfg: &cfg, db: db}
+
+	mock.ExpectQuery(`select count\(distinct user_id\) from urls where deleted_at is null;`).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(10))
+
+	count, err := s.CountUsers()
+	assert.Nil(t, err, "Error counting users")
+	assert.Equal(t, 10, count, "Unexpected number of users")
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("Not all expectations were met: %v", err)
+	}
+}

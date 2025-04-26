@@ -150,3 +150,21 @@ func (s *MemoryURLStore) DeleteURLs(userID string, urls []string) error {
 func (s *MemoryURLStore) Close() error {
 	return s.CreateSnapshot()
 }
+
+// CountURLs возвращает количество всех сокращённых URL в памяти.
+func (s *MemoryURLStore) CountURLs() (int, error) {
+	s.mx.RLock()
+	defer s.mx.RUnlock()
+	return len(s.urls), nil
+}
+
+// CountUsers возвращает количество уникальных пользователей в памяти.
+func (s *MemoryURLStore) CountUsers() (int, error) {
+	s.mx.RLock()
+	defer s.mx.RUnlock()
+	users := make(map[string]struct{})
+	for _, v := range s.urls {
+		users[v.UserID] = struct{}{}
+	}
+	return len(users), nil
+}
