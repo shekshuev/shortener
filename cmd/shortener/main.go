@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -48,6 +49,14 @@ func main() {
 
 	l := logger.NewLogger()
 	cfg := config.GetConfig()
+	var trustedSubnet *net.IPNet
+	if cfg.TrustedSubnet != "" {
+		_, subnet, err := net.ParseCIDR(cfg.TrustedSubnet)
+		if err != nil {
+			l.Log.Fatal("Invalid trusted subnet", zap.Error(err))
+		}
+		trustedSubnet = subnet
+	}
 	var urlStore store.URLStore = nil
 	if cfg.DatabaseDSN == cfg.DefaultDatabaseDSN {
 		urlStore = store.NewMemoryURLStore(&cfg)
@@ -55,7 +64,7 @@ func main() {
 		urlStore = store.NewPostgresURLStore(&cfg)
 	}
 	urlService := service.NewURLService(urlStore, &cfg)
-	urlHandler := handler.NewURLHandler(urlService)
+	urlHandler := handler.NewURLHandler(urlService, trustedSubnet)
 	server := &http.Server{
 		Addr:    cfg.ServerAddress,
 		Handler: urlHandler.Router,

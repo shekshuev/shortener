@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"path"
 
@@ -17,17 +18,18 @@ import (
 
 // URLHandler обрабатывает HTTP-запросы для управления сокращёнными URL.
 type URLHandler struct {
-	service service.Service
-	Router  *chi.Mux
+	service       service.Service
+	Router        *chi.Mux
+	trustedSubnet *net.IPNet
 }
 
 // NewURLHandler создаёт новый экземпляр URLHandler с зарегистрированными маршрутами.
-func NewURLHandler(service service.Service) *URLHandler {
+func NewURLHandler(service service.Service, trustedSubnet *net.IPNet) *URLHandler {
 	router := chi.NewRouter()
 	router.Use(middleware.RequestAuth)
 	router.Use(middleware.RequestLogger)
 	router.Use(middleware.GzipCompressor)
-	h := &URLHandler{service: service, Router: router}
+	h := &URLHandler{service: service, Router: router, trustedSubnet: trustedSubnet}
 	router.Post("/", h.createURLHandler)
 	router.Post("/api/shorten", h.createURLHandlerJSON)
 	router.Post("/api/shorten/batch", h.batchCreateURLHandlerJSON)

@@ -21,7 +21,7 @@ func TestNewURLHandler(t *testing.T) {
 		cfg := config.GetConfig()
 		s := mocks.NewURLStore()
 		srv := service.NewURLService(s, &cfg)
-		handler := NewURLHandler(srv)
+		handler := NewURLHandler(srv, nil)
 		assert.Equal(t, handler.service, srv, "URLHandler has incorrect service")
 	})
 }
@@ -41,7 +41,7 @@ func TestURLHandler_createURLHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	defer httpSrv.Close()
@@ -80,7 +80,7 @@ func TestURLHandler_createURLHandlerJSON(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	defer httpSrv.Close()
@@ -131,7 +131,7 @@ func TestURLHandler_batchCreateURLHandlerJSON(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	defer httpSrv.Close()
@@ -161,7 +161,7 @@ func TestURLHandler_getURLHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	defer httpSrv.Close()
@@ -200,7 +200,7 @@ func TestURLHandler_getUserURLsHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	defer httpSrv.Close()
@@ -237,7 +237,7 @@ func TestURLHandler_deleteUserURLsHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	defer httpSrv.Close()
@@ -276,7 +276,7 @@ func TestURLHandler_pingURLHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	mockStore := new(mocks.MockStore)
 	srv := service.NewURLService(mockStore, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	testCases := []struct {

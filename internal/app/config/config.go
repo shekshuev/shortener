@@ -19,6 +19,7 @@ type Config struct {
 	EnableHTTPS            bool   // Включить HTTPS.
 	CertFile               string // Путь к файлу с сертификатом.
 	KeyFile                string // путь к файлу с ключом.
+	TrustedSubnet          string // Доверенная подсеть в CIDR-формате.
 	DefaultServerAddress   string // Значение по умолчанию для ServerAddress.
 	DefaultBaseURL         string // Значение по умолчанию для BaseURL.
 	DefaultFileStoragePath string // Значение по умолчанию для FileStoragePath.
@@ -26,6 +27,7 @@ type Config struct {
 	DefaultEnableHTTPS     bool   // Значение по умолчанию для EnableHTTPS.
 	DefaultCertFile        string // Значение по умолчанию для CertFile.
 	DefaultKeyFile         string // Значение по умолчанию для KeyFile.
+	DefaultTrustedSubnet   string // Значение по умолчанию для TrustedSubnet (пустая строка).
 }
 
 type envConfig struct {
@@ -36,6 +38,7 @@ type envConfig struct {
 	EnableHTTPS     string `env:"ENABLE_HTTPS"`
 	CertFile        string `env:"TLS_CERT"`
 	KeyFile         string `env:"TLS_KEY"`
+	TrustedSubnet   string `env:"TRUSTED_SUBNET"`
 }
 
 type jsonConfig struct {
@@ -46,6 +49,7 @@ type jsonConfig struct {
 	EnableHTTPS     bool   `json:"enable_https"`
 	CertFile        string `json:"cert_file"`
 	KeyFile         string `json:"key_file"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 }
 
 // GetConfig возвращает экземпляр конфига
@@ -58,6 +62,7 @@ func GetConfig() Config {
 	cfg.DefaultEnableHTTPS = false
 	cfg.DefaultCertFile = ""
 	cfg.DefaultKeyFile = ""
+	cfg.DefaultTrustedSubnet = ""
 	parseFlags(&cfg)
 	parsEnv(&cfg)
 	return cfg
@@ -106,7 +111,11 @@ func parseFlags(cfg *Config) {
 	} else {
 		cfg.KeyFile = cfg.DefaultKeyFile
 	}
-
+	if f := flag.Lookup("t"); f == nil {
+		flag.StringVar(&cfg.TrustedSubnet, "t", cfg.DefaultTrustedSubnet, "trusted subnet CIDR")
+	} else {
+		cfg.TrustedSubnet = cfg.DefaultTrustedSubnet
+	}
 	flag.Parse()
 	parseJSON(configPath, cfg)
 	parsEnv(cfg)
@@ -139,6 +148,9 @@ func parsEnv(cfg *Config) {
 	}
 	if len(envCfg.KeyFile) > 0 {
 		cfg.KeyFile = envCfg.KeyFile
+	}
+	if len(envCfg.TrustedSubnet) > 0 {
+		cfg.TrustedSubnet = envCfg.TrustedSubnet
 	}
 }
 
@@ -183,5 +195,8 @@ func parseJSON(path string, cfg *Config) {
 	}
 	if cfg.KeyFile == cfg.DefaultKeyFile && jCfg.KeyFile != "" {
 		cfg.KeyFile = jCfg.KeyFile
+	}
+	if cfg.TrustedSubnet == cfg.DefaultTrustedSubnet && jCfg.TrustedSubnet != "" {
+		cfg.TrustedSubnet = jCfg.TrustedSubnet
 	}
 }
