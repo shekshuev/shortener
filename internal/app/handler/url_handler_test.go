@@ -315,6 +315,7 @@ func TestURLHandler_getStatsHandler(t *testing.T) {
 	testCases := []struct {
 		name           string
 		ip             string
+		setRealIP      bool
 		countURLs      int
 		countUsers     int
 		countURLError  error
@@ -324,6 +325,7 @@ func TestURLHandler_getStatsHandler(t *testing.T) {
 		{
 			name:           "Correct trusted IP",
 			ip:             "192.168.1.10",
+			setRealIP:      true,
 			countURLs:      10,
 			countUsers:     5,
 			countURLError:  nil,
@@ -333,6 +335,17 @@ func TestURLHandler_getStatsHandler(t *testing.T) {
 		{
 			name:           "Forbidden IP",
 			ip:             "10.0.0.1",
+			setRealIP:      true,
+			countURLs:      0,
+			countUsers:     0,
+			countURLError:  nil,
+			countUserError: nil,
+			expectedCode:   http.StatusForbidden,
+		},
+		{
+			name:           "Missing Real IP header",
+			ip:             "",
+			setRealIP:      false,
 			countURLs:      0,
 			countUsers:     0,
 			countURLError:  nil,
@@ -355,8 +368,11 @@ func TestURLHandler_getStatsHandler(t *testing.T) {
 			}
 
 			client := resty.New().R().
-				SetHeader("X-Real-IP", tc.ip).
 				SetHeader("Content-Type", "application/json")
+
+			if tc.setRealIP {
+				client.SetHeader("X-Real-IP", tc.ip)
+			}
 
 			resp, err := client.Get(httpSrv.URL + "/api/internal/stats")
 			assert.NoError(t, err, "error making HTTP request")
