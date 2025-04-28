@@ -59,7 +59,7 @@ func (h *URLHandler) createURLHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	shortURL, err := h.service.CreateShortURL(string(body), userID)
+	shortURL, err := h.service.CreateShortURL(r.Context(), string(body), userID)
 	switch {
 	case errors.Is(err, store.ErrAlreadyExists):
 		w.WriteHeader(http.StatusConflict)
@@ -98,7 +98,7 @@ func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	shortURL, err := h.service.CreateShortURL(createDTO.URL, userID)
+	shortURL, err := h.service.CreateShortURL(r.Context(), createDTO.URL, userID)
 
 	switch {
 	case errors.Is(err, store.ErrAlreadyExists):
@@ -126,7 +126,7 @@ func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request
 // Ответ: 307 Temporary Redirect на оригинальный URL или 410 Gone, если URL удалён.
 func (h *URLHandler) getURLHandler(w http.ResponseWriter, r *http.Request) {
 	urlPath := path.Base(r.URL.Path)
-	if longURL, err := h.service.GetLongURL(urlPath); err == nil {
+	if longURL, err := h.service.GetLongURL(r.Context(), urlPath); err == nil {
 		http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
 	} else {
 		if err == store.ErrAlreadyDeleted {
@@ -151,7 +151,7 @@ func (h *URLHandler) getUserURLsHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	if readDTO, err := h.service.GetUserURLs(userID); err == nil {
+	if readDTO, err := h.service.GetUserURLs(r.Context(), userID); err == nil {
 		if readDTO == nil {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -192,15 +192,15 @@ func (h *URLHandler) deleteUserURLsHandler(w http.ResponseWriter, r *http.Reques
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	go h.service.DeleteURLs(userID, urls)
+	go h.service.DeleteURLs(r.Context(), userID, urls)
 	w.WriteHeader(http.StatusAccepted)
 }
 
 // pingURLHandler проверяет доступность базы данных.
 // Запрос: `GET /ping`.
 // Ответ: 200 OK, если БД работает, иначе 500 Internal Server Error.
-func (h *URLHandler) pingURLHandler(w http.ResponseWriter, _ *http.Request) {
-	err := h.service.CheckDBConnection()
+func (h *URLHandler) pingURLHandler(w http.ResponseWriter, r *http.Request) {
+	err := h.service.CheckDBConnection(r.Context())
 	if err == nil {
 		w.WriteHeader(http.StatusOK)
 	} else {
@@ -231,7 +231,7 @@ func (h *URLHandler) batchCreateURLHandlerJSON(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	readDTO, err := h.service.BatchCreateShortURL(createDTO, userID)
+	readDTO, err := h.service.BatchCreateShortURL(r.Context(), createDTO, userID)
 	switch {
 	case errors.Is(err, store.ErrAlreadyExists):
 		w.WriteHeader(http.StatusConflict)
@@ -273,7 +273,7 @@ func (h *URLHandler) getStatsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stats, err := h.service.GetStats()
+	stats, err := h.service.GetStats(r.Context())
 	if err != nil {
 		http.Error(w, "failed to get stats", http.StatusInternalServerError)
 		return

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 
@@ -38,7 +39,7 @@ func TestPostgresURLStore_SetURL(t *testing.T) {
 					WithArgs(tc.value, tc.key, tc.userID).
 					WillReturnRows(sqlmock.NewRows([]string{"is_new", "shorted_url"}).AddRow(true, "test"))
 			}
-			_, err := s.SetURL(tc.key, tc.value, tc.userID)
+			_, err := s.SetURL(context.Background(), tc.key, tc.value, tc.userID)
 			if tc.hasError {
 				assert.NotNil(t, err, "Error is nil")
 			} else {
@@ -93,7 +94,7 @@ func TestPostgresURLStore_SetBatchURL(t *testing.T) {
 				}
 				mock.ExpectCommit()
 			}
-			err := s.SetBatchURL(tc.createDTO, tc.userID)
+			err := s.SetBatchURL(context.Background(), tc.createDTO, tc.userID)
 			if tc.hasError {
 				assert.NotNil(t, err, "Error is nil")
 			} else {
@@ -135,7 +136,7 @@ func TestPostgresURLStore_GetURL(t *testing.T) {
 					WithArgs(tc.getKey).
 					WillReturnError(sql.ErrNoRows)
 			}
-			res, err := s.GetURL(tc.getKey)
+			res, err := s.GetURL(context.Background(), tc.getKey)
 			if tc.key == tc.getKey {
 				assert.Equal(t, res, tc.value, "Get result is not equal to test value")
 				assert.Nil(t, err, "Get error is not nil")
@@ -181,7 +182,7 @@ func TestPostgresURLStore_GetUserURLs(t *testing.T) {
 					WithArgs(tc.getUserID).
 					WillReturnError(sql.ErrNoRows)
 			}
-			res, err := s.GetUserURLs(tc.getUserID)
+			res, err := s.GetUserURLs(context.Background(), tc.getUserID)
 			if !tc.hasError {
 				assert.Len(t, res, 1, "Get result length is not equal to test value")
 				assert.Nil(t, err, "Get error is not nil")
@@ -252,7 +253,7 @@ func TestPostgresURLStore_DeleteURLs(t *testing.T) {
 				mock.ExpectCommit()
 			}
 
-			err := s.DeleteURLs(tc.userID, tc.urls)
+			err := s.DeleteURLs(context.Background(), tc.userID, tc.urls)
 			if tc.hasError {
 				assert.NotNil(t, err, "Expected error but got nil")
 			} else {
@@ -286,7 +287,7 @@ func TestPostgresURLStore_CheckDBConnection(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mock.ExpectPing().WillReturnError(tc.error)
-			err = s.CheckDBConnection()
+			err = s.CheckDBConnection(context.Background())
 			assert.Equal(t, tc.hasError, err != nil, "CheckDBConnection failed")
 			if err := mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("Not all expectations were met: %v", err)
@@ -309,7 +310,7 @@ func TestPostgresURLStore_CountURLs(t *testing.T) {
 	mock.ExpectQuery(`select count\(\*\) from urls where deleted_at is null;`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(42))
 
-	count, err := s.CountURLs()
+	count, err := s.CountURLs(context.Background())
 	assert.Nil(t, err, "Error counting URLs")
 	assert.Equal(t, 42, count, "Unexpected number of URLs")
 
@@ -331,7 +332,7 @@ func TestPostgresURLStore_CountUsers(t *testing.T) {
 	mock.ExpectQuery(`select count\(distinct user_id\) from urls where deleted_at is null;`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(10))
 
-	count, err := s.CountUsers()
+	count, err := s.CountUsers(context.Background())
 	assert.Nil(t, err, "Error counting users")
 	assert.Equal(t, 10, count, "Unexpected number of users")
 

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"testing"
 
 	"github.com/shekshuev/shortener/internal/app/config"
@@ -25,7 +26,7 @@ func TestMemoryURLStore_SetURL(t *testing.T) {
 	s := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := s.SetURL(tc.key, tc.value, tc.userID)
+			_, err := s.SetURL(context.Background(), tc.key, tc.value, tc.userID)
 			if tc.hasError {
 				assert.NotNil(t, err, "Error is nil")
 			} else {
@@ -65,7 +66,7 @@ func TestMemoryURLStore_SetBatchURL(t *testing.T) {
 	s := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := s.SetBatchURL(tc.createDTO, tc.userID)
+			err := s.SetBatchURL(context.Background(), tc.createDTO, tc.userID)
 			if tc.hasError {
 				assert.NotNil(t, err, "Error is nil")
 			} else {
@@ -90,9 +91,9 @@ func TestMemoryURLStore_GetURL(t *testing.T) {
 	s := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := s.SetURL(tc.key, tc.value, tc.userID)
+			_, err := s.SetURL(context.Background(), tc.key, tc.value, tc.userID)
 			assert.Nil(t, err, "Set error is not nil")
-			res, err := s.GetURL(tc.getKey)
+			res, err := s.GetURL(context.Background(), tc.getKey)
 			if tc.key == tc.getKey {
 				assert.Equal(t, res, tc.value, "Get result is not equal to test value")
 				assert.Nil(t, err, "Get error is not nil")
@@ -120,9 +121,9 @@ func TestMemoryURLStore_GetUserURLs(t *testing.T) {
 	s := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := s.SetURL(tc.shortURL, tc.originalURL, userID)
+			_, err := s.SetURL(context.Background(), tc.shortURL, tc.originalURL, userID)
 			assert.Nil(t, err, "Set error is not nil")
-			res, err := s.GetUserURLs(tc.getUserID)
+			res, err := s.GetUserURLs(context.Background(), tc.getUserID)
 			if !tc.hasError {
 				assert.Len(t, res, 1, "Get result length is not equal to test value")
 				assert.Nil(t, err, "Get error is not nil")
@@ -189,17 +190,17 @@ func TestMemoryURLStore_DeleteURLs(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			s := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
-			err := s.SetBatchURL(tc.setupURLs, userID)
+			err := s.SetBatchURL(context.Background(), tc.setupURLs, userID)
 			assert.Nil(t, err, "Error during setup")
 
-			err = s.DeleteURLs(tc.userID, tc.deleteURLs)
+			err = s.DeleteURLs(context.Background(), tc.userID, tc.deleteURLs)
 			if tc.hasError {
 				assert.NotNil(t, err, "Expected error but got nil")
 			} else {
 				assert.Nil(t, err, "Unexpected error during deletion")
 			}
 
-			userURLs, err := s.GetUserURLs(userID)
+			userURLs, err := s.GetUserURLs(context.Background(), userID)
 			if tc.hasError {
 				assert.NotNil(t, err, "Expected error for empty URLs but got nil")
 			} else {
@@ -213,12 +214,12 @@ func TestMemoryURLStore_DeleteURLs(t *testing.T) {
 func TestMemoryURLStore_CountURLs(t *testing.T) {
 	cfg := config.GetConfig()
 	s := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
-	count, err := s.CountURLs()
+	count, err := s.CountURLs(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 0, count)
-	_, _ = s.SetURL("short1", "https://ya.ru", "user1")
-	_, _ = s.SetURL("short2", "https://google.com", "user2")
-	count, err = s.CountURLs()
+	_, _ = s.SetURL(context.Background(), "short1", "https://ya.ru", "user1")
+	_, _ = s.SetURL(context.Background(), "short2", "https://google.com", "user2")
+	count, err = s.CountURLs(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 2, count)
 }
@@ -226,14 +227,14 @@ func TestMemoryURLStore_CountURLs(t *testing.T) {
 func TestMemoryURLStore_CountUsers(t *testing.T) {
 	cfg := config.GetConfig()
 	s := &MemoryURLStore{urls: make(map[string]UserURL), cfg: &cfg}
-	count, err := s.CountUsers()
+	count, err := s.CountUsers(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 0, count)
-	_, _ = s.SetURL("short1", "https://ya.ru", "user1")
-	_, _ = s.SetURL("short2", "https://google.com", "user2")
-	_, _ = s.SetURL("short3", "https://example.com", "user1")
+	_, _ = s.SetURL(context.Background(), "short1", "https://ya.ru", "user1")
+	_, _ = s.SetURL(context.Background(), "short2", "https://google.com", "user2")
+	_, _ = s.SetURL(context.Background(), "short3", "https://example.com", "user1")
 
-	count, err = s.CountUsers()
+	count, err = s.CountUsers(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 2, count)
 }

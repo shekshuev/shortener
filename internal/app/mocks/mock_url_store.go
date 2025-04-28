@@ -1,6 +1,7 @@
 package mocks
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/shekshuev/shortener/internal/app/models"
@@ -24,7 +25,7 @@ func NewURLStore() *MockStore {
 }
 
 // SetURL сохраняет URL в хранилище.
-func (m *MockStore) SetURL(key, value, userID string) (string, error) {
+func (m *MockStore) SetURL(_ context.Context, key, value, userID string) (string, error) {
 	if len(key) == 0 {
 		return "", store.ErrEmptyKey
 	}
@@ -39,7 +40,7 @@ func (m *MockStore) SetURL(key, value, userID string) (string, error) {
 }
 
 // SetBatchURL сохраняет пакет URL в хранилище.
-func (m *MockStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userID string) error {
+func (m *MockStore) SetBatchURL(_ context.Context, createDTO []models.BatchShortURLCreateDTO, userID string) error {
 	if len(userID) == 0 {
 		return store.ErrEmptyUserID
 	}
@@ -59,7 +60,7 @@ func (m *MockStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userI
 }
 
 // GetURL возвращает оригинальный URL по короткому ключу.
-func (m *MockStore) GetURL(key string) (string, error) {
+func (m *MockStore) GetURL(_ context.Context, key string) (string, error) {
 	value, exists := m.urls[key]
 	if !exists {
 		return "", ErrNotFound
@@ -68,7 +69,7 @@ func (m *MockStore) GetURL(key string) (string, error) {
 }
 
 // GetUserURLs возвращает все URL, принадлежащие пользователю.
-func (m *MockStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
+func (m *MockStore) GetUserURLs(_ context.Context, userID string) ([]models.UserShortURLReadDTO, error) {
 	var readDTO []models.UserShortURLReadDTO
 	for key, value := range m.urls {
 		if value.UserID == userID {
@@ -82,7 +83,7 @@ func (m *MockStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, er
 }
 
 // DeleteURLs помечает список URL как удалённые.
-func (m *MockStore) DeleteURLs(userID string, urls []string) error {
+func (m *MockStore) DeleteURLs(_ context.Context, userID string, urls []string) error {
 	if m.urls == nil {
 		return store.ErrNotInitialized
 	}
@@ -106,7 +107,7 @@ func (m *MockStore) DeleteURLs(userID string, urls []string) error {
 }
 
 // CheckDBConnection проверяет подключение к базе данных (мокается для тестов).
-func (m *MockStore) CheckDBConnection() error {
+func (m *MockStore) CheckDBConnection(_ context.Context) error {
 	args := m.Called()
 	return args.Error(0)
 }
@@ -118,13 +119,13 @@ func (m *MockStore) Close() error {
 }
 
 // CountURLs возвращает количество всех сокращённых URL в моке.
-func (m *MockStore) CountURLs() (int, error) {
+func (m *MockStore) CountURLs(_ context.Context) (int, error) {
 	args := m.Called()
 	return args.Int(0), args.Error(1)
 }
 
 // CountUsers возвращает количество уникальных пользователей в моке.
-func (m *MockStore) CountUsers() (int, error) {
+func (m *MockStore) CountUsers(_ context.Context) (int, error) {
 	args := m.Called()
 	return args.Int(0), args.Error(1)
 }

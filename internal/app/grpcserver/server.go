@@ -27,7 +27,7 @@ func NewServer(service service.Service) *Server {
 // Запрос: ShortenRequest { url, user_id }.
 // Ответ: ShortenResponse { result: короткий URL } или ошибка.
 func (s *Server) Shorten(ctx context.Context, req *proto.ShortenRequest) (*proto.ShortenResponse, error) {
-	shortURL, err := s.service.CreateShortURL(req.Url, req.UserId)
+	shortURL, err := s.service.CreateShortURL(ctx, req.Url, req.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (s *Server) BatchShorten(ctx context.Context, req *proto.BatchShortenReques
 			OriginalURL:   item.OriginalUrl,
 		}
 	}
-	readDTOs, err := s.service.BatchCreateShortURL(createDTOs, req.UserId)
+	readDTOs, err := s.service.BatchCreateShortURL(ctx, createDTOs, req.UserId)
 	if err != nil {
 		if !errors.Is(err, store.ErrAlreadyExists) {
 			return nil, err
@@ -65,7 +65,7 @@ func (s *Server) BatchShorten(ctx context.Context, req *proto.BatchShortenReques
 // Запрос: UserURLsRequest { user_id }.
 // Ответ: UserURLsResponse с массивом ссылок или ошибка.
 func (s *Server) GetUserURLs(ctx context.Context, req *proto.UserURLsRequest) (*proto.UserURLsResponse, error) {
-	readDTO, err := s.service.GetUserURLs(req.UserId)
+	readDTO, err := s.service.GetUserURLs(ctx, req.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (s *Server) GetUserURLs(ctx context.Context, req *proto.UserURLsRequest) (*
 // Запрос: DeleteURLsRequest { user_id, short_urls }.
 // Ответ: DeleteURLsResponse без тела.
 func (s *Server) DeleteUserURLs(ctx context.Context, req *proto.DeleteURLsRequest) (*proto.DeleteURLsResponse, error) {
-	go s.service.DeleteURLs(req.UserId, req.ShortUrls)
+	go s.service.DeleteURLs(ctx, req.UserId, req.ShortUrls)
 	return &proto.DeleteURLsResponse{}, nil
 }
 
@@ -91,7 +91,7 @@ func (s *Server) DeleteUserURLs(ctx context.Context, req *proto.DeleteURLsReques
 // Запрос: PingRequest.
 // Ответ: PingResponse при успешном подключении или ошибка.
 func (s *Server) Ping(ctx context.Context, _ *proto.PingRequest) (*proto.PingResponse, error) {
-	err := s.service.CheckDBConnection()
+	err := s.service.CheckDBConnection(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (s *Server) Ping(ctx context.Context, _ *proto.PingRequest) (*proto.PingRes
 // Запрос: StatsRequest.
 // Ответ: StatsResponse с количеством URL и пользователей или ошибка.
 func (s *Server) GetStats(ctx context.Context, _ *proto.StatsRequest) (*proto.StatsResponse, error) {
-	stats, err := s.service.GetStats()
+	stats, err := s.service.GetStats(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (s *Server) GetStats(ctx context.Context, _ *proto.StatsRequest) (*proto.St
 // Запрос: GetOriginalURLRequest { short_url }.
 // Ответ: GetOriginalURLResponse с оригинальной ссылкой или ошибка.
 func (s *Server) GetOriginalURL(ctx context.Context, req *proto.GetOriginalURLRequest) (*proto.GetOriginalURLResponse, error) {
-	longURL, err := s.service.GetLongURL(req.ShortUrl)
+	longURL, err := s.service.GetLongURL(ctx, req.ShortUrl)
 	if err != nil {
 		if err == store.ErrAlreadyDeleted {
 			return nil, store.ErrAlreadyDeleted

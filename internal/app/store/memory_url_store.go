@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -37,7 +38,7 @@ func NewMemoryURLStore(cfg *config.Config) *MemoryURLStore {
 }
 
 // SetURL сохраняет новый URL в хранилище.
-func (s *MemoryURLStore) SetURL(key, value, userID string) (string, error) {
+func (s *MemoryURLStore) SetURL(_ context.Context, key, value, userID string) (string, error) {
 	s.mx.Lock()
 	defer s.mx.Unlock()
 	if s.urls == nil {
@@ -57,7 +58,7 @@ func (s *MemoryURLStore) SetURL(key, value, userID string) (string, error) {
 }
 
 // SetBatchURL сохраняет пакет URL в хранилище.
-func (s *MemoryURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userID string) error {
+func (s *MemoryURLStore) SetBatchURL(_ context.Context, createDTO []models.BatchShortURLCreateDTO, userID string) error {
 	s.mx.Lock()
 	defer s.mx.Unlock()
 	if s.urls == nil {
@@ -84,7 +85,7 @@ func (s *MemoryURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, 
 }
 
 // GetURL возвращает оригинальный URL по короткому ключу.
-func (s *MemoryURLStore) GetURL(key string) (string, error) {
+func (s *MemoryURLStore) GetURL(_ context.Context, key string) (string, error) {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
 	if s.urls == nil {
@@ -101,7 +102,7 @@ func (s *MemoryURLStore) GetURL(key string) (string, error) {
 }
 
 // GetUserURLs возвращает список URL пользователя.
-func (s *MemoryURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
+func (s *MemoryURLStore) GetUserURLs(_ context.Context, userID string) ([]models.UserShortURLReadDTO, error) {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
 	if s.urls == nil {
@@ -120,7 +121,7 @@ func (s *MemoryURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDT
 }
 
 // DeleteURLs помечает список URL как удалённые.
-func (s *MemoryURLStore) DeleteURLs(userID string, urls []string) error {
+func (s *MemoryURLStore) DeleteURLs(_ context.Context, userID string, urls []string) error {
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
@@ -152,14 +153,14 @@ func (s *MemoryURLStore) Close() error {
 }
 
 // CountURLs возвращает количество всех сокращённых URL в памяти.
-func (s *MemoryURLStore) CountURLs() (int, error) {
+func (s *MemoryURLStore) CountURLs(_ context.Context) (int, error) {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
 	return len(s.urls), nil
 }
 
 // CountUsers возвращает количество уникальных пользователей в памяти.
-func (s *MemoryURLStore) CountUsers() (int, error) {
+func (s *MemoryURLStore) CountUsers(_ context.Context) (int, error) {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
 	users := make(map[string]struct{})
