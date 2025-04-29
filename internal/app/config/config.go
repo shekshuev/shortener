@@ -12,40 +12,48 @@ import (
 
 // Config содержит настройки приложения, включая параметры сервера, базы данных и файлового хранилища.
 type Config struct {
-	ServerAddress          string // Адрес и порт, на котором запускается сервер.
-	BaseURL                string // Базовый URL для сокращённых ссылок.
-	FileStoragePath        string // Путь к файлу для хранения сокращённых URL.
-	DatabaseDSN            string // Строка подключения к базе данных.
-	EnableHTTPS            bool   // Включить HTTPS.
-	CertFile               string // Путь к файлу с сертификатом.
-	KeyFile                string // путь к файлу с ключом.
-	DefaultServerAddress   string // Значение по умолчанию для ServerAddress.
-	DefaultBaseURL         string // Значение по умолчанию для BaseURL.
-	DefaultFileStoragePath string // Значение по умолчанию для FileStoragePath.
-	DefaultDatabaseDSN     string // Значение по умолчанию для DatabaseDSN.
-	DefaultEnableHTTPS     bool   // Значение по умолчанию для EnableHTTPS.
-	DefaultCertFile        string // Значение по умолчанию для CertFile.
-	DefaultKeyFile         string // Значение по умолчанию для KeyFile.
+	ServerAddress            string // Адрес и порт, на котором запускается сервер.
+	BaseURL                  string // Базовый URL для сокращённых ссылок.
+	FileStoragePath          string // Путь к файлу для хранения сокращённых URL.
+	DatabaseDSN              string // Строка подключения к базе данных.
+	EnableHTTPS              bool   // Включить HTTPS.
+	CertFile                 string // Путь к файлу с сертификатом.
+	KeyFile                  string // путь к файлу с ключом.
+	TrustedSubnet            string // Доверенная подсеть в CIDR-формате.
+	GRPCServerAddress        string // Адрес GRPC
+	DefaultServerAddress     string // Значение по умолчанию для ServerAddress.
+	DefaultBaseURL           string // Значение по умолчанию для BaseURL.
+	DefaultFileStoragePath   string // Значение по умолчанию для FileStoragePath.
+	DefaultDatabaseDSN       string // Значение по умолчанию для DatabaseDSN.
+	DefaultEnableHTTPS       bool   // Значение по умолчанию для EnableHTTPS.
+	DefaultCertFile          string // Значение по умолчанию для CertFile.
+	DefaultKeyFile           string // Значение по умолчанию для KeyFile.
+	DefaultTrustedSubnet     string // Значение по умолчанию для TrustedSubnet.
+	DefaultGRPCServerAddress string // Значение по умолчанию для GRPCServerAddress.
 }
 
 type envConfig struct {
-	ServerAddress   string `env:"SERVER_ADDRESS"`
-	BaseURL         string `env:"BASE_URL"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	DatabaseDSN     string `env:"DATABASE_DSN"`
-	EnableHTTPS     string `env:"ENABLE_HTTPS"`
-	CertFile        string `env:"TLS_CERT"`
-	KeyFile         string `env:"TLS_KEY"`
+	ServerAddress     string `env:"SERVER_ADDRESS"`
+	BaseURL           string `env:"BASE_URL"`
+	FileStoragePath   string `env:"FILE_STORAGE_PATH"`
+	DatabaseDSN       string `env:"DATABASE_DSN"`
+	EnableHTTPS       string `env:"ENABLE_HTTPS"`
+	CertFile          string `env:"TLS_CERT"`
+	KeyFile           string `env:"TLS_KEY"`
+	TrustedSubnet     string `env:"TRUSTED_SUBNET"`
+	GRPCServerAddress string `env:"GRPC_SERVER_ADDRESS"`
 }
 
 type jsonConfig struct {
-	ServerAddress   string `json:"server_address"`
-	BaseURL         string `json:"base_url"`
-	FileStoragePath string `json:"file_storage_path"`
-	DatabaseDSN     string `json:"database_dsn"`
-	EnableHTTPS     bool   `json:"enable_https"`
-	CertFile        string `json:"cert_file"`
-	KeyFile         string `json:"key_file"`
+	ServerAddress     string `json:"server_address"`
+	BaseURL           string `json:"base_url"`
+	FileStoragePath   string `json:"file_storage_path"`
+	DatabaseDSN       string `json:"database_dsn"`
+	EnableHTTPS       bool   `json:"enable_https"`
+	CertFile          string `json:"cert_file"`
+	KeyFile           string `json:"key_file"`
+	TrustedSubnet     string `json:"trusted_subnet"`
+	GRPCServerAddress string `json:"grpc_server_address"`
 }
 
 // GetConfig возвращает экземпляр конфига
@@ -58,6 +66,8 @@ func GetConfig() Config {
 	cfg.DefaultEnableHTTPS = false
 	cfg.DefaultCertFile = ""
 	cfg.DefaultKeyFile = ""
+	cfg.DefaultTrustedSubnet = ""
+	cfg.DefaultGRPCServerAddress = "localhost:50051"
 	parseFlags(&cfg)
 	parsEnv(&cfg)
 	return cfg
@@ -106,7 +116,16 @@ func parseFlags(cfg *Config) {
 	} else {
 		cfg.KeyFile = cfg.DefaultKeyFile
 	}
-
+	if f := flag.Lookup("t"); f == nil {
+		flag.StringVar(&cfg.TrustedSubnet, "t", cfg.DefaultTrustedSubnet, "trusted subnet CIDR")
+	} else {
+		cfg.TrustedSubnet = cfg.DefaultTrustedSubnet
+	}
+	if f := flag.Lookup("grpc"); f == nil {
+		flag.StringVar(&cfg.GRPCServerAddress, "grpc", cfg.DefaultGRPCServerAddress, "address and port for gRPC server")
+	} else {
+		cfg.GRPCServerAddress = cfg.DefaultGRPCServerAddress
+	}
 	flag.Parse()
 	parseJSON(configPath, cfg)
 	parsEnv(cfg)
@@ -139,6 +158,12 @@ func parsEnv(cfg *Config) {
 	}
 	if len(envCfg.KeyFile) > 0 {
 		cfg.KeyFile = envCfg.KeyFile
+	}
+	if len(envCfg.TrustedSubnet) > 0 {
+		cfg.TrustedSubnet = envCfg.TrustedSubnet
+	}
+	if len(envCfg.GRPCServerAddress) > 0 {
+		cfg.GRPCServerAddress = envCfg.GRPCServerAddress
 	}
 }
 
@@ -183,5 +208,11 @@ func parseJSON(path string, cfg *Config) {
 	}
 	if cfg.KeyFile == cfg.DefaultKeyFile && jCfg.KeyFile != "" {
 		cfg.KeyFile = jCfg.KeyFile
+	}
+	if cfg.TrustedSubnet == cfg.DefaultTrustedSubnet && jCfg.TrustedSubnet != "" {
+		cfg.TrustedSubnet = jCfg.TrustedSubnet
+	}
+	if cfg.GRPCServerAddress == cfg.DefaultGRPCServerAddress && jCfg.GRPCServerAddress != "" {
+		cfg.GRPCServerAddress = jCfg.GRPCServerAddress
 	}
 }

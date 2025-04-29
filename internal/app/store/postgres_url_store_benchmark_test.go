@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -21,7 +22,7 @@ func BenchmarkPostgresURLStore_SetURL(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = store.SetURL("short_test", "https://example.com", "1")
+		_, _ = store.SetURL(context.Background(), "short_test", "https://example.com", "1")
 	}
 }
 
@@ -45,7 +46,7 @@ func BenchmarkPostgresURLStore_SetBatchURL(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = store.SetBatchURL(createDTO, "1")
+		_ = store.SetBatchURL(context.Background(), createDTO, "1")
 	}
 }
 
@@ -62,7 +63,7 @@ func BenchmarkPostgresURLStore_GetURL(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = store.GetURL("short_test")
+		_, _ = store.GetURL(context.Background(), "short_test")
 	}
 }
 
@@ -83,7 +84,7 @@ func BenchmarkPostgresURLStore_GetUserURLs(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = store.GetUserURLs("1")
+		_, _ = store.GetUserURLs(context.Background(), "1")
 	}
 }
 
@@ -104,6 +105,6 @@ func BenchmarkPostgresURLStore_DeleteURLs(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = store.DeleteURLs("1", urls)
+		_ = store.DeleteURLs(context.Background(), "1", urls)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"path"
 
@@ -17,17 +18,18 @@ import (
 
 // URLHandler обрабатывает HTTP-запросы для управления сокращёнными URL.
 type URLHandler struct {
-	service service.Service
-	Router  *chi.Mux
+	service       service.Service
+	Router        *chi.Mux
+	trustedSubnet *net.IPNet
 }
 
 // NewURLHandler создаёт новый экземпляр URLHandler с зарегистрированными маршрутами.
-func NewURLHandler(service service.Service) *URLHandler {
+func NewURLHandler(service service.Service, trustedSubnet *net.IPNet) *URLHandler {
 	router := chi.NewRouter()
 	router.Use(middleware.RequestAuth)
 	router.Use(middleware.RequestLogger)
 	router.Use(middleware.GzipCompressor)
-	h := &URLHandler{service: service, Router: router}
+	h := &URLHandler{service: service, Router: router, trustedSubnet: trustedSubnet}
 	router.Post("/", h.createURLHandler)
 	router.Post("/api/shorten", h.createURLHandlerJSON)
 	router.Post("/api/shorten/batch", h.batchCreateURLHandlerJSON)
@@ -35,6 +37,7 @@ func NewURLHandler(service service.Service) *URLHandler {
 	router.Get("/api/user/urls", h.getUserURLsHandler)
 	router.Delete("/api/user/urls", h.deleteUserURLsHandler)
 	router.Get("/ping", h.pingURLHandler)
+	router.Get("/api/internal/stats", h.getStatsHandler)
 	return h
 }
 
@@ -56,7 +59,7 @@ func (h *URLHandler) createURLHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	shortURL, err := h.service.CreateShortURL(string(body), userID)
+	shortURL, err := h.service.CreateShortURL(r.Context(), string(body), userID)
 	switch {
 	case errors.Is(err, store.ErrAlreadyExists):
 		w.WriteHeader(http.StatusConflict)
@@ -95,7 +98,7 @@ func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	shortURL, err := h.service.CreateShortURL(createDTO.URL, userID)
+	shortURL, err := h.service.CreateShortURL(r.Context(), createDTO.URL, userID)
 
 	switch {
 	case errors.Is(err, store.ErrAlreadyExists):
@@ -123,7 +126,7 @@ func (h *URLHandler) createURLHandlerJSON(w http.ResponseWriter, r *http.Request
 // Ответ: 307 Temporary Redirect на оригинальный URL или 410 Gone, если URL удалён.
 func (h *URLHandler) getURLHandler(w http.ResponseWriter, r *http.Request) {
 	urlPath := path.Base(r.URL.Path)
-	if longURL, err := h.service.GetLongURL(urlPath); err == nil {
+	if longURL, err := h.service.GetLongURL(r.Context(), urlPath); err == nil {
 		http.Redirect(w, r, longURL, http.StatusTemporaryRedirect)
 	} else {
 		if err == store.ErrAlreadyDeleted {
@@ -148,7 +151,7 @@ func (h *URLHandler) getUserURLsHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	if readDTO, err := h.service.GetUserURLs(userID); err == nil {
+	if readDTO, err := h.service.GetUserURLs(r.Context(), userID); err == nil {
 		if readDTO == nil {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -189,15 +192,15 @@ func (h *URLHandler) deleteUserURLsHandler(w http.ResponseWriter, r *http.Reques
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	go h.service.DeleteURLs(userID, urls)
+	go h.service.DeleteURLs(r.Context(), userID, urls)
 	w.WriteHeader(http.StatusAccepted)
 }
 
 // pingURLHandler проверяет доступность базы данных.
 // Запрос: `GET /ping`.
 // Ответ: 200 OK, если БД работает, иначе 500 Internal Server Error.
-func (h *URLHandler) pingURLHandler(w http.ResponseWriter, _ *http.Request) {
-	err := h.service.CheckDBConnection()
+func (h *URLHandler) pingURLHandler(w http.ResponseWriter, r *http.Request) {
+	err := h.service.CheckDBConnection(r.Context())
 	if err == nil {
 		w.WriteHeader(http.StatusOK)
 	} else {
@@ -228,7 +231,7 @@ func (h *URLHandler) batchCreateURLHandlerJSON(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	readDTO, err := h.service.BatchCreateShortURL(createDTO, userID)
+	readDTO, err := h.service.BatchCreateShortURL(r.Context(), createDTO, userID)
 	switch {
 	case errors.Is(err, store.ErrAlreadyExists):
 		w.WriteHeader(http.StatusConflict)
@@ -246,5 +249,47 @@ func (h *URLHandler) batchCreateURLHandlerJSON(w http.ResponseWriter, r *http.Re
 	_, err = w.Write(resp)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+}
+
+// getStatsHandler обрабатывает получение статистики сервиса.
+// Запрос: `GET /api/internal/stats`.
+// Ответ: 200 OK + JSON {"urls": <количество URL>, "users": <количество пользователей>} либо 403 Forbidden при недоверенном IP.
+func (h *URLHandler) getStatsHandler(w http.ResponseWriter, r *http.Request) {
+	if h.trustedSubnet == nil {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	ipStr := r.Header.Get("X-Real-IP")
+	if ipStr == "" {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	ip := net.ParseIP(ipStr)
+	if ip == nil || !h.trustedSubnet.Contains(ip) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	stats, err := h.service.GetStats(r.Context())
+	if err != nil {
+		http.Error(w, "failed to get stats", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	resp, err := json.Marshal(stats)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = w.Write(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

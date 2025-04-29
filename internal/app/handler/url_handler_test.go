@@ -3,6 +3,7 @@ package handler
 import (
 	"database/sql"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -21,7 +22,7 @@ func TestNewURLHandler(t *testing.T) {
 		cfg := config.GetConfig()
 		s := mocks.NewURLStore()
 		srv := service.NewURLService(s, &cfg)
-		handler := NewURLHandler(srv)
+		handler := NewURLHandler(srv, nil)
 		assert.Equal(t, handler.service, srv, "URLHandler has incorrect service")
 	})
 }
@@ -41,7 +42,7 @@ func TestURLHandler_createURLHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	defer httpSrv.Close()
@@ -80,7 +81,7 @@ func TestURLHandler_createURLHandlerJSON(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	defer httpSrv.Close()
@@ -131,7 +132,7 @@ func TestURLHandler_batchCreateURLHandlerJSON(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	defer httpSrv.Close()
@@ -161,7 +162,7 @@ func TestURLHandler_getURLHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	defer httpSrv.Close()
@@ -200,7 +201,7 @@ func TestURLHandler_getUserURLsHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	defer httpSrv.Close()
@@ -237,7 +238,7 @@ func TestURLHandler_deleteUserURLsHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	srv := service.NewURLService(s, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	defer httpSrv.Close()
@@ -276,7 +277,7 @@ func TestURLHandler_pingURLHandler(t *testing.T) {
 	cfg := config.GetConfig()
 	mockStore := new(mocks.MockStore)
 	srv := service.NewURLService(mockStore, &cfg)
-	handler := NewURLHandler(srv)
+	handler := NewURLHandler(srv, nil)
 	httpSrv := httptest.NewServer(handler.Router)
 
 	testCases := []struct {
@@ -301,4 +302,94 @@ func TestURLHandler_pingURLHandler(t *testing.T) {
 			mockStore.ExpectedCalls = nil
 		})
 	}
+}
+
+func TestURLHandler_getStatsHandler(t *testing.T) {
+	cfg := config.GetConfig()
+	mockStore := new(mocks.MockStore)
+	srv := service.NewURLService(mockStore, &cfg)
+	handler := NewURLHandler(srv, parseCIDR("192.168.1.0/24"))
+	httpSrv := httptest.NewServer(handler.Router)
+	defer httpSrv.Close()
+
+	testCases := []struct {
+		name           string
+		ip             string
+		setRealIP      bool
+		countURLs      int
+		countUsers     int
+		countURLError  error
+		countUserError error
+		expectedCode   int
+	}{
+		{
+			name:           "Correct trusted IP",
+			ip:             "192.168.1.10",
+			setRealIP:      true,
+			countURLs:      10,
+			countUsers:     5,
+			countURLError:  nil,
+			countUserError: nil,
+			expectedCode:   http.StatusOK,
+		},
+		{
+			name:           "Forbidden IP",
+			ip:             "10.0.0.1",
+			setRealIP:      true,
+			countURLs:      0,
+			countUsers:     0,
+			countURLError:  nil,
+			countUserError: nil,
+			expectedCode:   http.StatusForbidden,
+		},
+		{
+			name:           "Missing Real IP header",
+			ip:             "",
+			setRealIP:      false,
+			countURLs:      0,
+			countUsers:     0,
+			countURLError:  nil,
+			countUserError: nil,
+			expectedCode:   http.StatusForbidden,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockStore.ExpectedCalls = nil
+			if tc.expectedCode == http.StatusOK {
+				mockStore.On("CountURLs").Return(tc.countURLs, nil).Once()
+				mockStore.On("CountUsers").Return(tc.countUsers, nil).Once()
+			} else if tc.countURLError != nil {
+				mockStore.On("CountURLs").Return(0, tc.countURLError).Once()
+			} else if tc.countUserError != nil {
+				mockStore.On("CountURLs").Return(tc.countURLs, nil).Once()
+				mockStore.On("CountUsers").Return(0, tc.countUserError).Once()
+			}
+
+			client := resty.New().R().
+				SetHeader("Content-Type", "application/json")
+
+			if tc.setRealIP {
+				client.SetHeader("X-Real-IP", tc.ip)
+			}
+
+			resp, err := client.Get(httpSrv.URL + "/api/internal/stats")
+			assert.NoError(t, err, "error making HTTP request")
+			assert.Equal(t, tc.expectedCode, resp.StatusCode(), "Response code didn't match expected")
+
+			if tc.expectedCode == http.StatusOK {
+				var stats models.StatsDTO
+				err := json.Unmarshal(resp.Body(), &stats)
+				assert.NoError(t, err, "error unmarshal response body")
+				assert.Equal(t, tc.countURLs, stats.URLs, "URLs count mismatch")
+				assert.Equal(t, tc.countUsers, stats.Users, "Users count mismatch")
+			}
+		})
+	}
+}
+
+func parseCIDR(cidr string) *net.IPNet {
+	_, subnet, _ := net.ParseCIDR(cidr)
+	return subnet
 }

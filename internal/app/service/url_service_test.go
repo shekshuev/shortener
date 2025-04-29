@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"testing"
@@ -37,7 +38,7 @@ func TestURLService_CreateShortURL(t *testing.T) {
 	service := NewURLService(s, &cfg)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			shortURL, err := service.CreateShortURL(tc.longURL, tc.userID)
+			shortURL, err := service.CreateShortURL(context.Background(), tc.longURL, tc.userID)
 			if tc.hasError {
 				assert.NotNil(t, err, "Error is nil")
 			} else {
@@ -76,7 +77,7 @@ func TestURLService_BatchCreateShortURL(t *testing.T) {
 	service := NewURLService(s, &cfg)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			readDTO, err := service.BatchCreateShortURL(tc.createDTO, tc.userID)
+			readDTO, err := service.BatchCreateShortURL(context.Background(), tc.createDTO, tc.userID)
 			if tc.hasError {
 				assert.NotNil(t, err, "Error is nil")
 			} else {
@@ -105,11 +106,11 @@ func TestURLService_GetLongURL(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	service := NewURLService(s, &cfg)
-	_, err := s.SetURL(shorted, longURL, userID)
+	_, err := s.SetURL(context.Background(), shorted, longURL, userID)
 	assert.Nil(t, err, "Set url store error is not nil")
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			longURL, err := service.GetLongURL(tc.shorted)
+			longURL, err := service.GetLongURL(context.Background(), tc.shorted)
 			if tc.shorted == "non-existing" {
 				assert.NotNil(t, err, "Error is nil")
 			} else {
@@ -136,11 +137,11 @@ func TestURLService_GetUserURLs(t *testing.T) {
 	cfg := config.GetConfig()
 	s := mocks.NewURLStore()
 	service := NewURLService(s, &cfg)
-	_, err := s.SetURL(shorted, longURL, userID)
+	_, err := s.SetURL(context.Background(), shorted, longURL, userID)
 	assert.Nil(t, err, "Set url store error is not nil")
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			readDTO, err := service.GetUserURLs(tc.getUserID)
+			readDTO, err := service.GetUserURLs(context.Background(), tc.getUserID)
 			if tc.shorted == "non-existing" {
 				assert.NotNil(t, err, "Error is nil")
 			} else {
@@ -169,9 +170,81 @@ func TestURLService_CheckDBConnection(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockStore.On("CheckDBConnection").Return(tc.error)
-			err := service.CheckDBConnection()
+			err := service.CheckDBConnection(context.Background())
 			assert.Equal(t, tc.hasError, err != nil, "CheckDBConnection failed")
 			mockStore.AssertCalled(t, "CheckDBConnection")
+			mockStore.ExpectedCalls = nil
+		})
+	}
+}
+
+func TestURLService_GetStats(t *testing.T) {
+	cfg := config.GetConfig()
+	mockStore := mocks.NewURLStore()
+	service := NewURLService(mockStore, &cfg)
+
+	testCases := []struct {
+		name          string
+		urlsCount     int
+		usersCount    int
+		urlsError     error
+		usersError    error
+		expectError   bool
+		expectedURLs  int
+		expectedUsers int
+	}{
+		{
+			name:          "Success getting stats",
+			urlsCount:     10,
+			usersCount:    5,
+			urlsError:     nil,
+			usersError:    nil,
+			expectError:   false,
+			expectedURLs:  10,
+			expectedUsers: 5,
+		},
+		{
+			name:          "Error getting URLs count",
+			urlsCount:     0,
+			usersCount:    0,
+			urlsError:     fmt.Errorf("db error"),
+			usersError:    nil,
+			expectError:   true,
+			expectedURLs:  0,
+			expectedUsers: 0,
+		},
+		{
+			name:          "Error getting Users count",
+			urlsCount:     10,
+			usersCount:    0,
+			urlsError:     nil,
+			usersError:    fmt.Errorf("db error"),
+			expectError:   true,
+			expectedURLs:  0,
+			expectedUsers: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockStore.On("CountURLs").Return(tc.urlsCount, tc.urlsError)
+			mockStore.On("CountUsers").Return(tc.usersCount, tc.usersError)
+
+			stats, err := service.GetStats(context.Background())
+			if tc.expectError {
+				assert.NotNil(t, err, "Expected error but got nil")
+				assert.Equal(t, 0, stats.URLs)
+				assert.Equal(t, 0, stats.Users)
+			} else {
+				assert.Nil(t, err, "Unexpected error")
+				assert.Equal(t, tc.expectedURLs, stats.URLs, "URLs count mismatch")
+				assert.Equal(t, tc.expectedUsers, stats.Users, "Users count mismatch")
+			}
+
+			mockStore.AssertCalled(t, "CountURLs")
+			if tc.urlsError == nil {
+				mockStore.AssertCalled(t, "CountUsers")
+			}
 			mockStore.ExpectedCalls = nil
 		})
 	}

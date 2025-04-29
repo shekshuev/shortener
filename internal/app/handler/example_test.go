@@ -20,7 +20,7 @@ func ExampleURLHandler_createURLHandler() {
 	cfg := config.GetConfig()
 	store := mocks.NewURLStore()
 	svc := service.NewURLService(store, &cfg)
-	h := handler.NewURLHandler(svc)
+	h := handler.NewURLHandler(svc, nil)
 
 	reqBody := []byte("http://example.com")
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(reqBody))
@@ -38,7 +38,7 @@ func ExampleURLHandler_createURLHandlerJSON() {
 	cfg := config.GetConfig()
 	store := mocks.NewURLStore()
 	svc := service.NewURLService(store, &cfg)
-	h := handler.NewURLHandler(svc)
+	h := handler.NewURLHandler(svc, nil)
 
 	reqBody, _ := json.Marshal(models.ShortURLCreateDTO{URL: "http://example.com"})
 	req := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewReader(reqBody))
@@ -56,7 +56,7 @@ func ExampleURLHandler_getURLHandler() {
 	cfg := config.GetConfig()
 	store := mocks.NewURLStore()
 	svc := service.NewURLService(store, &cfg)
-	h := handler.NewURLHandler(svc)
+	h := handler.NewURLHandler(svc, nil)
 
 	reqBody, _ := json.Marshal(models.ShortURLCreateDTO{URL: "http://example.com"})
 	createReq := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(reqBody))
@@ -86,7 +86,7 @@ func ExampleURLHandler_getUserURLsHandler() {
 	cfg := config.GetConfig()
 	store := mocks.NewURLStore()
 	svc := service.NewURLService(store, &cfg)
-	h := handler.NewURLHandler(svc)
+	h := handler.NewURLHandler(svc, nil)
 
 	reqBody, _ := json.Marshal(models.ShortURLCreateDTO{URL: "http://example.com"})
 	createReq := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(reqBody))
@@ -125,7 +125,7 @@ func ExampleURLHandler_deleteUserURLsHandler() {
 	cfg := config.GetConfig()
 	store := mocks.NewURLStore()
 	svc := service.NewURLService(store, &cfg)
-	h := handler.NewURLHandler(svc)
+	h := handler.NewURLHandler(svc, nil)
 
 	reqBody, _ := json.Marshal(models.ShortURLCreateDTO{URL: "http://example.com"})
 	createReq := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(reqBody))
@@ -166,7 +166,7 @@ func ExampleURLHandler_batchCreateURLHandlerJSON() {
 	cfg := config.GetConfig()
 	store := mocks.NewURLStore()
 	svc := service.NewURLService(store, &cfg)
-	h := handler.NewURLHandler(svc)
+	h := handler.NewURLHandler(svc, nil)
 
 	reqBody, _ := json.Marshal([]models.BatchShortURLCreateDTO{
 		{CorrelationID: "1", OriginalURL: "http://google.com"},

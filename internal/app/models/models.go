@@ -35,3 +35,9 @@ type UserShortURLReadDTO struct {
 	ShortURL    string `json:"short_url"`    // Сокращённый URL.
 	OriginalURL string `json:"original_url"` // Исходный URL.
 }
+
+// StatsDTO представляет статистику по сервису.
+type StatsDTO struct {
+	URLs  int `json:"urls"`  // Количество сокращённых URL
+	Users int `json:"users"` // Количество пользователей
+}

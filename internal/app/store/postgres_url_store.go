@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sync"
@@ -66,7 +67,7 @@ func NewPostgresURLStore(cfg *config.Config) *PostgresURLStore {
 }
 
 // SetURL сохраняет новый URL в базе данных.
-func (s *PostgresURLStore) SetURL(key, value, userID string) (string, error) {
+func (s *PostgresURLStore) SetURL(ctx context.Context, key, value, userID string) (string, error) {
 	if len(key) == 0 {
 		return "", ErrEmptyKey
 	}
@@ -86,7 +87,7 @@ func (s *PostgresURLStore) SetURL(key, value, userID string) (string, error) {
 		isNew      bool
 		shorterURL string
 	)
-	err := s.db.QueryRow(query, value, key, userID).Scan(&isNew, &shorterURL)
+	err := s.db.QueryRowContext(ctx, query, value, key, userID).Scan(&isNew, &shorterURL)
 	if err != nil {
 		log.Log.Error("Error upserting record", zap.Error(err))
 	}
@@ -97,9 +98,9 @@ func (s *PostgresURLStore) SetURL(key, value, userID string) (string, error) {
 }
 
 // SetBatchURL сохраняет URL пользователю пачкой
-func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO, userID string) error {
+func (s *PostgresURLStore) SetBatchURL(ctx context.Context, createDTO []models.BatchShortURLCreateDTO, userID string) error {
 	log := logger.NewLogger()
-	tx, err := s.db.Begin()
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -123,7 +124,7 @@ func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO
 			isNew    bool
 			shortURL string
 		)
-		err := s.db.QueryRow(query, createDTO[i].OriginalURL, createDTO[i].ShortURL, userID).Scan(&isNew, &shortURL)
+		err := tx.QueryRowContext(ctx, query, createDTO[i].OriginalURL, createDTO[i].ShortURL, userID).Scan(&isNew, &shortURL)
 		if err != nil {
 			log.Log.Error("Error upserting record", zap.Error(err))
 			tx.Rollback()
@@ -140,13 +141,13 @@ func (s *PostgresURLStore) SetBatchURL(createDTO []models.BatchShortURLCreateDTO
 }
 
 // GetURL возвращает оригинальный URL по короткому ключу.
-func (s *PostgresURLStore) GetURL(key string) (string, error) {
+func (s *PostgresURLStore) GetURL(ctx context.Context, key string) (string, error) {
 	query := `
 		select original_url, deleted_at is not null as is_deleted from urls where shorted_url = $1;
 	`
 	var value string
 	var isDeleted bool
-	err := s.db.QueryRow(query, key).Scan(&value, &isDeleted)
+	err := s.db.QueryRowContext(ctx, query, key).Scan(&value, &isDeleted)
 	if err == sql.ErrNoRows {
 		return "", ErrNotFound
 	}
@@ -157,12 +158,12 @@ func (s *PostgresURLStore) GetURL(key string) (string, error) {
 }
 
 // GetUserURLs возвращает список URL пользователя.
-func (s *PostgresURLStore) GetUserURLs(userID string) ([]models.UserShortURLReadDTO, error) {
+func (s *PostgresURLStore) GetUserURLs(ctx context.Context, userID string) ([]models.UserShortURLReadDTO, error) {
 	query := `
 		select original_url, shorted_url from urls where user_id = $1 and deleted_at is null;
 	`
 	var readDTO []models.UserShortURLReadDTO
-	rows, err := s.db.Query(query, userID)
+	rows, err := s.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, ErrNotFound
 	}
@@ -184,7 +185,7 @@ func (s *PostgresURLStore) GetUserURLs(userID string) ([]models.UserShortURLRead
 }
 
 // DeleteURLs удаляет список URL пользователя.
-func (s *PostgresURLStore) DeleteURLs(userID string, urls []string) error {
+func (s *PostgresURLStore) DeleteURLs(ctx context.Context, userID string, urls []string) error {
 	if len(userID) == 0 {
 		return ErrEmptyUserID
 	}
@@ -227,15 +228,15 @@ func (s *PostgresURLStore) DeleteURLs(userID string, urls []string) error {
 		close(results)
 	}()
 
-	tx, err := s.db.Begin()
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
-	defer func() {
+	defer func(tx *sql.Tx) {
 		if err != nil {
 			tx.Rollback()
 		}
-	}()
+	}(tx)
 
 	query := `
         update urls set deleted_at = now() where shorted_url = any($1) and user_id = $2 and deleted_at is null;
@@ -244,7 +245,7 @@ func (s *PostgresURLStore) DeleteURLs(userID string, urls []string) error {
 		if batch == nil {
 			continue
 		}
-		_, err = tx.Exec(query, pq.Array(batch), userID)
+		_, err = tx.ExecContext(ctx, query, pq.Array(batch), userID)
 		if err != nil {
 			return err
 		}
@@ -267,6 +268,22 @@ func (s *PostgresURLStore) Close() error {
 }
 
 // CheckDBConnection проверяет соединение с базой данных.
-func (s *PostgresURLStore) CheckDBConnection() error {
-	return s.db.Ping()
+func (s *PostgresURLStore) CheckDBConnection(ctx context.Context) error {
+	return s.db.PingContext(ctx)
+}
+
+// CountURLs возвращает количество всех сокращённых URL в БД.
+func (s *PostgresURLStore) CountURLs(ctx context.Context) (int, error) {
+	var count int
+	query := `select count(*) from urls where deleted_at is null;`
+	err := s.db.QueryRowContext(ctx, query).Scan(&count)
+	return count, err
+}
+
+// CountUsers возвращает количество уникальных пользователей в БД.
+func (s *PostgresURLStore) CountUsers(ctx context.Context) (int, error) {
+	var count int
+	query := `select count(distinct user_id) from urls where deleted_at is null;`
+	err := s.db.QueryRowContext(ctx, query).Scan(&count)
+	return count, err
 }

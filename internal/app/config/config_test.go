@@ -16,6 +16,8 @@ func TestGetConfig_EnvPriority(t *testing.T) {
 	enableHTTPS := "true"
 	cert := "cert"
 	key := "key"
+	subnet := "10.0.0.0/24"
+	grpcAddress := "localhost:50051"
 	os.Setenv("SERVER_ADDRESS", serverAddress)
 	os.Setenv("BASE_URL", baseURL)
 	os.Setenv("FILE_STORAGE_PATH", fileStoragePath)
@@ -23,6 +25,8 @@ func TestGetConfig_EnvPriority(t *testing.T) {
 	os.Setenv("ENABLE_HTTPS", enableHTTPS)
 	os.Setenv("TLS_CERT", cert)
 	os.Setenv("TLS_KEY", key)
+	os.Setenv("TRUSTED_SUBNET", subnet)
+	os.Setenv("GRPC_SERVER_ADDRESS", grpcAddress)
 	defer os.Unsetenv("SERVER_ADDRESS")
 	defer os.Unsetenv("BASE_URL")
 	defer os.Unsetenv("FILE_STORAGE_PATH")
@@ -30,6 +34,8 @@ func TestGetConfig_EnvPriority(t *testing.T) {
 	defer os.Unsetenv("ENABLE_HTTPS")
 	defer os.Unsetenv("TLS_CERT")
 	defer os.Unsetenv("TLS_KEY")
+	defer os.Unsetenv("TRUSTED_SUBNET")
+	defer os.Unsetenv("GRPC_SERVER_ADDRESS")
 	cfg := GetConfig()
 	assert.Equal(t, cfg.BaseURL, baseURL)
 	assert.Equal(t, cfg.ServerAddress, serverAddress)
@@ -38,6 +44,8 @@ func TestGetConfig_EnvPriority(t *testing.T) {
 	assert.Equal(t, cfg.EnableHTTPS, true)
 	assert.Equal(t, cfg.CertFile, cert)
 	assert.Equal(t, cfg.KeyFile, key)
+	assert.Equal(t, cfg.TrustedSubnet, subnet)
+	assert.Equal(t, cfg.GRPCServerAddress, grpcAddress)
 }
 
 func TestGetConfig_FlagPriority(t *testing.T) {
@@ -48,8 +56,10 @@ func TestGetConfig_FlagPriority(t *testing.T) {
 	enableHTTPS := true
 	cert := "cert"
 	key := "key"
+	subnet := "10.0.0.0/24"
+	grpcAddress := "localhost:50051"
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	os.Args = []string{"cmd", "-a", serverAddress, "-b", baseURL, "-f", fileStoragePath, "-d", databaseDSN, "-s", "-cert", cert, "-key", key}
+	os.Args = []string{"cmd", "-a", serverAddress, "-b", baseURL, "-f", fileStoragePath, "-d", databaseDSN, "-s", "-cert", cert, "-key", key, "-t", subnet, "-grpc", grpcAddress}
 	defer func() { os.Args = os.Args[:1] }()
 	cfg := GetConfig()
 	assert.Equal(t, cfg.BaseURL, baseURL)
@@ -59,6 +69,9 @@ func TestGetConfig_FlagPriority(t *testing.T) {
 	assert.Equal(t, cfg.EnableHTTPS, enableHTTPS)
 	assert.Equal(t, cfg.CertFile, cert)
 	assert.Equal(t, cfg.KeyFile, key)
+	assert.Equal(t, cfg.TrustedSubnet, subnet)
+	assert.Equal(t, cfg.GRPCServerAddress, grpcAddress)
+
 }
 
 func TestGetConfig_DefaultPriority(t *testing.T) {
@@ -69,6 +82,8 @@ func TestGetConfig_DefaultPriority(t *testing.T) {
 	os.Unsetenv("ENABLE_HTTPS")
 	os.Unsetenv("TLS_CERT")
 	os.Unsetenv("TLS_KEY")
+	os.Unsetenv("TRUSTED_SUBNET")
+	os.Unsetenv("GRPC_SERVER_ADDRESS")
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	os.Args = []string{"cmd"}
 	cfg := GetConfig()
@@ -77,8 +92,10 @@ func TestGetConfig_DefaultPriority(t *testing.T) {
 	assert.Equal(t, cfg.FileStoragePath, cfg.DefaultFileStoragePath)
 	assert.Equal(t, cfg.DatabaseDSN, cfg.DefaultDatabaseDSN)
 	assert.Equal(t, cfg.EnableHTTPS, cfg.DefaultEnableHTTPS)
-	assert.Equal(t, cfg.CertFile, cfg.CertFile)
-	assert.Equal(t, cfg.KeyFile, cfg.KeyFile)
+	assert.Equal(t, cfg.CertFile, cfg.DefaultCertFile)
+	assert.Equal(t, cfg.KeyFile, cfg.DefaultKeyFile)
+	assert.Equal(t, cfg.TrustedSubnet, cfg.DefaultTrustedSubnet)
+	assert.Equal(t, cfg.GRPCServerAddress, cfg.DefaultGRPCServerAddress)
 }
 
 func TestGetConfig_JSONPriority(t *testing.T) {
@@ -94,13 +111,14 @@ func TestGetConfig_JSONPriority(t *testing.T) {
 		"database_dsn": "json_dsn",
 		"enable_https": true,
 		"cert_file": "json_cert.pem",
-		"key_file": "json_key.pem"
+		"key_file": "json_key.pem",
+		"trusted_subnet": "10.0.0.0/24",
+		"grpc_server_address": "localhost:50051"
 	}`
 	_, err = tmpFile.WriteString(jsonContent)
 	assert.NoError(t, err)
 	tmpFile.Close()
 
-	// Убедимся, что переменные окружения и флаги не мешают
 	os.Unsetenv("SERVER_ADDRESS")
 	os.Unsetenv("BASE_URL")
 	os.Unsetenv("FILE_STORAGE_PATH")
@@ -108,8 +126,9 @@ func TestGetConfig_JSONPriority(t *testing.T) {
 	os.Unsetenv("ENABLE_HTTPS")
 	os.Unsetenv("TLS_CERT")
 	os.Unsetenv("TLS_KEY")
+	os.Unsetenv("TRUSTED_SUBNET")
+	os.Unsetenv("GRPC_SERVER_ADDRESS")
 
-	// Переустанавливаем флаги и добавляем путь к JSON
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	os.Args = []string{"cmd", "-c", tmpFile.Name()}
 
@@ -122,4 +141,6 @@ func TestGetConfig_JSONPriority(t *testing.T) {
 	assert.Equal(t, cfg.EnableHTTPS, true)
 	assert.Equal(t, cfg.CertFile, "json_cert.pem")
 	assert.Equal(t, cfg.KeyFile, "json_key.pem")
+	assert.Equal(t, cfg.TrustedSubnet, "10.0.0.0/24")
+	assert.Equal(t, cfg.GRPCServerAddress, "localhost:50051")
 }
